@@ -1,0 +1,4 @@
+name = Better Getter
+description = Better Getter gets it better.
+core = 7.x
+files[] = BetterGetter.class.inc
