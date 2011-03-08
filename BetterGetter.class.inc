@@ -137,6 +137,10 @@ class BetterGetter {
     return $this;
   }
 
+  public function getRawResponse() {
+    return $this->rawResponse;
+  }
+
   /**
    * Prepare and execute the cURL handle and set the response.
    */
@@ -160,9 +164,12 @@ class BetterGetter {
    * Execute and close the cURL handle and set the rawResponse property.
    *
    * @throws BetterGetterCurlException
+   * @return
+   *   $this, for chaining.
    */
   public function executeCurlHandle() {
-    if (($this->rawResponse = curl_exec($this->curlHandler)) === FALSE) {
+    $this->rawResponse = curl_exec($this->curlHandler);
+    if ($this->rawResponse === FALSE) {
       // Get error number and handler
       $curl_errno = curl_errno($this->curlHandler);
       $curl_error = curl_error($this->curlHandler);
