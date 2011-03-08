@@ -131,18 +131,31 @@ class BetterGetter {
    * @param $options
    *   An array, keyed by cURL option constants and with corresponding values.
    *   Any previously set values for given options will be overwritten.
+   * @return
+   *   $this, for chaining.
    */
   public function setCurlOpts($options) {
     $this->curlOpts = array_merge($this->curlOpts, $options);
     return $this;
   }
 
+  /**
+   * Get the raw server response.
+   *
+   * @return
+   *   The string representing the data returned from the server; or FALSE if
+   *   the server connection failed; or NULL if we haven't executed the cURL
+   *   handle yet (we haven't tried contacting the server yet).
+   */
   public function getRawResponse() {
     return $this->rawResponse;
   }
 
   /**
    * Prepare and execute the cURL handle and set the response.
+   *
+   * @return
+   *   $this, for chaining.
    */
   public function execute() {
     return $this->prepareCurlHandle()->executeCurlHandle();
@@ -152,6 +165,9 @@ class BetterGetter {
    * Prepare the cURL handle for execution.
    *
    * Set the desired cURL options on the handler.
+   *
+   * @return
+   *   $this, for chaining.
    */
   public function prepareCurlHandle() {
     $this->curlHandler = curl_init($this->uri);
