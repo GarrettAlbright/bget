@@ -21,19 +21,19 @@ class BetterGetter {
    * @see http://php.net/curl_init
    * @see BetterGetter::prepareCurlHandle()
    */
-  protected curlHandle;
+  protected $curlHandle;
 
   /**
    * The URI of the resource to be fetched.
    */
-  protected uri;
+  protected $uri;
 
   /**
    * An array of cURL library options.
    *
    * @see http://php.net/curl_setopt
    */
-  protected curlOpts = array();
+  protected $curlOpts = array();
 
   /**
    * The raw server response returned by curl_exec().
@@ -41,7 +41,7 @@ class BetterGetter {
    * This will be NULL if the cURL handle has not been executed yet, or FALSE
    * if an error happened during execution. In other cases, it will be a string.
    */
-  protected rawResponse;
+  protected $rawResponse;
   
   /**
    * Constructor.
@@ -56,7 +56,7 @@ class BetterGetter {
    *     $bg->setUri('http://example.com/');
    *   @endcode
    */
-  protected function __construct($uri = NULL) {
+  public function __construct($uri = NULL) {
     if (!empty($uri)) {
       $this->setUri($uri);
     }
