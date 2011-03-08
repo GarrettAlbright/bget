@@ -87,20 +87,56 @@ class BetterGetter {
     return $this;
   }
   
-
+  /**
+   * Getter for cURL library options.
+   *
+   * @param $option
+   *   The cURL option constant to return the set value for.
+   * @return
+   *   The set value, or NULL if not set.
+   *
+   * @see http://php.net/curl_setopt
+   */
   public function getCurlOpt($option) {
     return isset($this->curlOpts[$option]) ? $this->curlOpts[$option] : NULL;
   }
   
+  /**
+   * Setter for cURL library options.
+   *
+   * @param $ption
+   *   The cURL option constant to set a value for. If a value has already been
+   *   set for this option, it will be overwritten.
+   * @param $value
+   *   The value to set for the given option.
+   * @return
+   *   $this, for chaining purposes.
+   *
+   * @see http://php.net/curl_setopt
+   */
   public function setCurlOpt($option, $value) {
     $this->curlOpts[$option] = $value;
     return $this;
   }
-  
+
+  /**
+   * Get all set cURL options.
+   *
+   * @return
+   *   An associative array keyed by the cURL option constant and with the
+   *   associated set value.
+   */
   public function getCurlOpts() {
     return $this->curlOpts;
   }
-  
+
+  /**
+   * Set many cURL options at once.
+   *
+   * @param $options
+   *   An array, keyed by cURL option constants and with corresponding values.
+   *   Any previously set values for given options will be overwritten.
+   */
   public function setCurlOpts($options) {
     $this->curlOpts = array_merge($this->curlOpts, $options);
     return $this;
@@ -125,17 +161,30 @@ class BetterGetter {
     return $this;
   }
 */
-  
+
+  /**
+   * Prepare and execute the cURL handle and set the response.
+   */
   public function execute() {
     $this->prepareCurlHandle()->executeCurlHandle();
   }
   
+  /**
+   * Prepare the cURL handle for execution.
+   *
+   * Set the desired cURL options on the handler.
+   */
   public function prepareCurlHandle() {
     $this->curlHandler = curl_init($this->uri);
     $this->curlOpts[CURLOPT_RETURNTRANSFER] = TRUE;
     curl_setopt_array($this->curlHandler, $this->curlOpts);    
   }
 
+  /**
+   * Execute and close the cURL handle and set the rawResponse property.
+   *
+   * @throws BetterGetterCurlException
+   */
   public function executeCurlHandle() {
     if (($this->rawResponse = curl_exec($this->curlHandler)) === FALSE) {
       // Get error number and handler
@@ -152,5 +201,8 @@ class BetterGetter {
     return $this;
   }
 }
-    
+
+/**
+ * Simple exception specific to Better Getter errors.
+ */
 class BetterGetterCurlException extends Exception {}
