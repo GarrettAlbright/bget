@@ -141,7 +141,7 @@ class BetterGetter {
    * Prepare and execute the cURL handle and set the response.
    */
   public function execute() {
-    $this->prepareCurlHandle()->executeCurlHandle();
+    return $this->prepareCurlHandle()->executeCurlHandle();
   }
   
   /**
@@ -152,7 +152,8 @@ class BetterGetter {
   public function prepareCurlHandle() {
     $this->curlHandler = curl_init($this->uri);
     $this->curlOpts[CURLOPT_RETURNTRANSFER] = TRUE;
-    curl_setopt_array($this->curlHandler, $this->curlOpts);    
+    curl_setopt_array($this->curlHandler, $this->curlOpts);
+    return $this;
   }
 
   /**
