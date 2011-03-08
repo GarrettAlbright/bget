@@ -205,3 +205,5 @@ class BetterGetter {
  * Simple exception specific to Better Getter errors.
  */
 class BetterGetterCurlException extends Exception {}
+
+class BetterGetterConfigException extends Exception {}
