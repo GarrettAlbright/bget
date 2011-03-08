@@ -35,11 +35,6 @@ class BetterGetter {
    */
   protected curlOpts = array();
 
-/*
-  protected httpHeadersOut = array();
-  protected httpHeadersIn = array();
-*/
-
   /**
    * The raw server response returned by curl_exec().
    *
@@ -141,26 +136,6 @@ class BetterGetter {
     $this->curlOpts = array_merge($this->curlOpts, $options);
     return $this;
   }
-  
-/*
-  function getHttpHeader($header) {
-    return isset($this->httpHeadersOut[$header]) ? $this->httpHeadersOut[$header] : NULL;
-  }
-  
-  function setHttpHeader($header, $value) {
-    $this->httpHeadersOut[$header] = $value;
-    return $this;
-  }
-  
-  function getHttpHeaders() {
-    return $this->httpHeadersOut;
-  }
-  
-  function setHttpHeaders($headers) {
-    $this->httpHeadersOut = array_merge($this->httpHeadersOut, $headers);
-    return $this;
-  }
-*/
 
   /**
    * Prepare and execute the cURL handle and set the response.
