@@ -1,5 +1,6 @@
 name = Better Getter
 description = Better Getter gets it better.
 core = 7.x
+php = 5.1.3
 files[] = BetterGetter.class.inc
 files[] = BetterGetterHttp.class.inc
