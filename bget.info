@@ -4,3 +4,4 @@ core = 7.x
 php = 5.1.3
 files[] = BetterGetter.class.inc
 files[] = BetterGetterHttp.class.inc
+files[] = BetterGetterGopher.class.inc
