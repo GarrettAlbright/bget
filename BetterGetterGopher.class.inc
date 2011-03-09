@@ -11,13 +11,13 @@ class BetterGetterGopher extends BetterGetter {
     }
     else {
       // Assume it's a directory.
-      $this->contentType = '0';
+      $this->contentType = '1';
     }
     return parent::setUri($uri);
   }
 
   public function getDirectoryListing() {
-    if ($this->contentType !== '0') {
+    if ($this->contentType !== '1') {
       throw new BetterGetterGopherException('Attempting to parse directory listing response when response is probably not a directory listing');
     }
     $rows = array();
