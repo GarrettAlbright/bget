@@ -1,0 +1,45 @@
+<?php
+
+class BgetTestCase extends DrupalWebTestCase {
+  function getInfo() {
+    return array(
+      'name' => 'Better Getter tests',
+      'description' => 'Tests for Better Getter',
+      'group' => 'Better Getter',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('bget');
+  }
+
+  function testGetSetUri() {
+    $bg = new BetterGetter('http://example.com/');
+    $this->assertEqual($bg->getUri(), 'http://example.com/', t('Setting URI with constructor method and fetching with getUri() method'));
+    $this->assertEqual($bg->setUri('http://example.org/foo')->getUri(), 'http://example.org/foo', t('Setting URI with setUri() method and fetching with getUri() method'));
+  }
+
+  function testGetSetCurlOpts() {
+    $bg = new BetterGetter('http://example.com/');
+    $opts = array(
+      CURLOPT_AUTOREFERER => TRUE,
+      CURLOPT_USERAGENT => 'Better Getter',
+      CURLOPT_USERPWD => 'foo:bar',
+      CURLOPT_HTTPPROXYTUNNEL => FALSE,
+    );
+    $bg->setCurlOpt(CURLOPT_AUTOREFERER, $opts[CURLOPT_AUTOREFERER])->setCurlOpt(CURLOPT_USERAGENT, $opts[CURLOPT_USERAGENT]);
+    $this->assertEqual($bg->getCurlOpt(CURLOPT_USERAGENT), $opts[CURLOPT_USERAGENT], t('Setting single options with setCurlOpt() method and getting with getCurlOpt() method'));
+    $this->assertEqual(
+      $bg->getCurlOpts(),
+      array(
+        CURLOPT_AUTOREFERER => $opts[CURLOPT_AUTOREFERER],
+        CURLOPT_USERAGENT => $opts[CURLOPT_USERAGENT],
+      ),
+      t('Fetching multiple options with getCurlOpts() method')
+    );
+    unset($bg);
+    $bg = new BetterGetter('http://example.org/');
+    $bg->setCurlOpts($opts);
+    $this->assertEqual($bg->getCurlOpts(), $opts, t('Setting multiple options with setCurlOpts() method'));
+  }
+}
