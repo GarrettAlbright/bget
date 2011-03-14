@@ -42,7 +42,7 @@ class BetterGetter {
    * if an error happened during execution. In other cases, it will be a string.
    */
   protected $rawResponse;
-  
+
   /**
    * Constructor.
    *
@@ -64,11 +64,11 @@ class BetterGetter {
 
   /**
    * Getter for the URI member variable.
-   */  
+   */
   public function getUri() {
     return $this->uri;
   }
-  
+
   /**
    * Setter for the URI member variable.
    *
@@ -81,7 +81,7 @@ class BetterGetter {
     $this->uri = $uri;
     return $this;
   }
-  
+
   /**
    * Getter for cURL library options.
    *
@@ -95,7 +95,7 @@ class BetterGetter {
   public function getCurlOpt($option) {
     return isset($this->curlOpts[$option]) ? $this->curlOpts[$option] : NULL;
   }
-  
+
   /**
    * Setter for cURL library options.
    *
@@ -135,7 +135,9 @@ class BetterGetter {
    *   $this, for chaining.
    */
   public function setCurlOpts($options) {
-    $this->curlOpts = array_merge($this->curlOpts, $options);
+    foreach ($options as $option => $value) {
+      $this->setCurlOpt($option, $value);
+    }
     return $this;
   }
 
@@ -160,7 +162,7 @@ class BetterGetter {
   public function execute() {
     return $this->prepareCurlHandle()->executeCurlHandle();
   }
-  
+
   /**
    * Prepare the cURL handle for execution.
    *
