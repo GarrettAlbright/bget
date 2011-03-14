@@ -13,12 +13,18 @@ class BgetTestCase extends DrupalWebTestCase {
     parent::setUp('bget');
   }
 
+  /**
+   * Test getting and setting the URI to access.
+   */
   function testGetSetUri() {
     $bg = new BetterGetter('http://example.com/');
     $this->assertEqual($bg->getUri(), 'http://example.com/', t('Setting URI with constructor method and fetching with getUri() method'));
     $this->assertEqual($bg->setUri('http://example.org/foo')->getUri(), 'http://example.org/foo', t('Setting URI with setUri() method and fetching with getUri() method'));
   }
 
+  /**
+   * Test getting and setting cURL library options in various ways.
+   */
   function testGetSetCurlOpts() {
     $bg = new BetterGetter('http://example.com/');
     $opts = array(
@@ -41,5 +47,28 @@ class BgetTestCase extends DrupalWebTestCase {
     $bg = new BetterGetter('http://example.org/');
     $bg->setCurlOpts($opts);
     $this->assertEqual($bg->getCurlOpts(), $opts, t('Setting multiple options with setCurlOpts() method'));
+  }
+
+  /**
+   * Test executing a cURL handle.
+   */
+  function testExecution() {
+    $bg = new BetterGetter(url('<front>', array('absolute' => TRUE)));
+    $this->assertTrue($bg->execute()->getRawResponse(), t('Simple execution for site front page returns non-empty response'));
+
+    $message = t('BetterGetterCurlException thrown predictably for invalid URI');
+    $bg = new BetterGetter();
+    try {
+      $bg->execute();
+      $this->fail($message);
+    }
+    catch (Exception $e) {
+      if (is_a($e, 'BetterGetterCurlException') && $e->getCode() == 3) {
+        $this->pass($message);
+      }
+      else {
+        $this->fail($message);
+      }
+    }
   }
 }
