@@ -20,8 +20,25 @@ class BetterGetterHttp extends BetterGetter {
    * Each value is a flat array of values. Why an array instead of a string?
    * Because it's theoretically possible to send headers repeated with different
    * values, though I'm not sure if this is in common use.
+   *
+   * Note that when a request happens, this param is nulled out, then rebuilt
+   * using the actual headers sent to the server. Why? Because some cURL options
+   * may define outgoing HTTP headers which wouldn't be explicitly set by using
+   * the setRequestHeader() method, and therefore not be in this array, even
+   * though they were set to the server. For example, the CURLOPT_USERAGENT
+   * option will cause a User-Agent header to be sent to the server which won't
+   * normally be in this array. However, it is possible to get the "real"
+   * request headers that cURL sent as a string after execution, and then parse
+   * them into an array in the format we're using here. However, it only really
+   * makes sense to do so if the user actually tries to get the request headers.
+   * So we check in getRequestHeaders() and rebuild if necessary in there.
    */
   protected $httpRequestHeaders = array();
+
+  /**
+   * The raw, unparsed HTTP request header string.
+   */  
+  protected $httpRawRequestHeaders;
 
   /**
    * The raw, unparsed HTTP response header string.
@@ -72,7 +89,7 @@ class BetterGetterHttp extends BetterGetter {
    */
   public function setCurlOpt($option, $value) {
     if ($option === CURLOPT_HTTPHEADER) {
-      throw new BetterGetterConfigException('Please use the setHttpHeader() or setHttpHeaders() methods to set HTTP headers.');
+      throw new BetterGetterConfigException('Please use the setRequestHeader() method to set HTTP headers.');
     }
     return parent::setCurlOpt($option, $value);
   }
@@ -87,7 +104,8 @@ class BetterGetterHttp extends BetterGetter {
    *   array; or NULL if none have been defined yet.
    */
   public function getRequestHeader($header) {
-    return isset($this->httpRequestHeaders[$header]) ? $this->httpRequestHeaders[$header] : NULL;
+    $headers = $this->getRequestHeaders();
+    return isset($headers[$header]) ? $headers[$header] : NULL;
   }
 
   /**
@@ -122,6 +140,9 @@ class BetterGetterHttp extends BetterGetter {
    *   one-dimensional arrays of values for that header.
    */
   public function getRequestHeaders() {
+    if ($this->hasExecuted() && empty($this->httpRequestHeaders)) {
+      $this->parseRequestHeaders();
+    }
     return $this->httpRequestHeaders;
   }
 
@@ -134,11 +155,11 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    *
-   * @see BetterGetterHttp::setHttpHeader()
+   * @see BetterGetterHttp::setRequestHeader()
    */
   public function setRequestHeaders($headers) {
     foreach ($headers as $header => $value) {
-      $this->setHttpHeader($header, $value);
+      $this->setRequestHeader($header, $value);
     }
     return $this;
   }
@@ -226,9 +247,9 @@ class BetterGetterHttp extends BetterGetter {
     }
     $this->curlOpts[CURLOPT_HTTPHEADER] = $headers;
     $this->curlOpts[CURLOPT_HEADER] = TRUE;
-    // Get the outgoing query string so we can verify what our outgoing headers
+    // Get the outgoing request string so we can verify what our outgoing headers
     // were.
-
+    $this->curlOpts[CURLINFO_HEADER_OUT] = TRUE;
     return $this;
   }
 
@@ -239,7 +260,10 @@ class BetterGetterHttp extends BetterGetter {
    *   $this, for chaining.
    */
   public function execute() {
-    return $this->prepareQueryHeaders()->prepareCurlHandle()->executeCurlHandle()->closeCurlHandle()splitResponse();
+    $this->prepareRequestHeaders()->prepareCurlHandle()->executeCurlHandle();
+    $this->httpRawRequestHeaders = curl_getinfo($this->curlHandle, CURLINFO_HEADER_OUT);
+    $this->httpRequestHeaders = NULL;
+    $this->closeCurlHandle()->splitResponse();
   }
 
   /**
@@ -251,8 +275,10 @@ class BetterGetterHttp extends BetterGetter {
    */
   public function splitResponse() {
     // cURL may return several sets of headers when doing HTTP authentication.
-    // We'll use the last headers sent as the ones to parse.
-    $chunks = preg_split('/\n\n|\r\n\r\n/', $this->rawResponse, 0, PREG_SPLIT_OFFSET_CAPTURE);
+    // We'll use the last headers sent as the ones to parse. Note we use
+    // preg_split() here instead of explode() so that we can capture the offset
+    // of each chunk using PREG_SPLIT_OFFSET_CAPTURE.
+    $chunks = preg_split('/\r\n\r\n/', $this->rawResponse, 0, PREG_SPLIT_OFFSET_CAPTURE);
     // Find the last chunk that looks like a chunk of HTTP headers.
     foreach ($chunks as $chunk_key => $chunk) {
       // Look for a HTTP response's first line, which will look something like
@@ -292,20 +318,47 @@ class BetterGetterHttp extends BetterGetter {
    * @see BetterGetterHttp::httpResponseHeaders
    */
   public function parseResponseHeaders() {
-    $header_lines = preg_split('/\n|\r\n/', $this->httpRawResponseHeaders);
-    $this->httpResponseHeaders = array();
+    $this->httpResponseHeaders = $this->parseHeaderString($this->httpRawResponseHeaders);
+    return $this;
+  }
+
+  /**
+   * Parse the HTTP request headers after a request.
+   *
+   * @return
+   *   $this, for chaining.
+   *
+   * @see BetterGetterHttp::httpRequestHeaders
+   */
+  public function parseRequestHeaders() {
+    $this->httpRequestHeaders = $this->parseHeaderString($this->httpRawRequestHeaders);
+    return $this;
+  }
+
+  /**
+   * Generically parse HTTP headers into an array.
+   *
+   * @param $header_string
+   *   The string of headers.
+   * @return
+   *   An associative array of headers, keyed by header and with values of one-
+   *   dimensional arrays of values.
+   */
+  public function parseHeaderString($header_string) {
+    $header_lines = explode("\r\n", $header_string);
+    $headers = array();
     // The next() trick below is a silly trick to let us skip the first item
     // in the array, which will be the HTTP status line.
     while ($header_line = next($header_lines)) {
       $header_parts = explode(': ', $header_line, 2);
-      if (isset($this->httpResponseHeaders[$header_parts[0]])) {
-        $this->httpResponseHeaders[$header_parts[0]][] = $header_parts[1];
+      if (isset($headers[$header_parts[0]])) {
+        $headers[$header_parts[0]][] = $header_parts[1];
       }
       else {
-        $this->httpResponseHeaders[$header_parts[0]] = array($header_parts[1]);
+        $headers[$header_parts[0]] = array($header_parts[1]);
       }
     }
-    return $this;
+    return $headers;
   }
 }
 
