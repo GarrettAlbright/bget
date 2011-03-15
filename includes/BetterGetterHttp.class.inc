@@ -14,14 +14,14 @@
 class BetterGetterHttp extends BetterGetter {
 
   /**
-   * An associative array of headers to be sent as part of the server query,
+   * An associative array of headers to be sent as part of the server request,
    * keyed by header field name.
    *
    * Each value is a flat array of values. Why an array instead of a string?
    * Because it's theoretically possible to send headers repeated with different
    * values, though I'm not sure if this is in common use.
    */
-  protected $httpQueryHeaders = array();
+  protected $httpRequestHeaders = array();
 
   /**
    * The raw, unparsed HTTP response header string.
@@ -32,17 +32,17 @@ class BetterGetterHttp extends BetterGetter {
    * An associative array of headers sent from the server as part of the server
    * response, keyed by header field name.
    *
-   * Like with BetterGetterHttp::httpQueryHeaders, each value is a flat array of
-   * values, since the same field with different browsers may be sent by
+   * Like with BetterGetterHttp::httpRequestHeaders, each value is a flat array
+   * of values, since the same field with different browsers may be sent by
    * servers. Unlike with outgoing headers, this practice *is* in common use,
    * particularly when it comes to cookies.
    * 
    * Note that this is not populated immediately after a response is returned;
-   * it's populated by the parsehttpResponseHeaders() method, which will be called if
-   * the getResponseHeaders() or getResponseHeader() methods are called and the
-   * headers haven't been parsed yet. This makes it possible to quickly get an
-   * HTTP response without the overhead of parsing the headers if they're not
-   * needed.
+   * it's populated by the parsehttpResponseHeaders() method, which will be
+   * called if the getResponseHeaders() or getResponseHeader() methods are
+   * called and the headers haven't been parsed yet. This makes it possible to
+   * quickly get an HTTP response without the overhead of parsing the headers if
+   * they're not needed.
    *
    * @see http://en.wikipedia.org/wiki/HTTP_cookie#Setting_a_cookie
    */
@@ -86,8 +86,8 @@ class BetterGetterHttp extends BetterGetter {
    *   The values currently being stored for the header, in a one-dimensional
    *   array; or NULL if none have been defined yet.
    */
-  public function getQueryHeader($header) {
-    return isset($this->httpQueryHeaders[$header]) ? $this->httpQueryHeaders[$header] : NULL;
+  public function getRequestHeader($header) {
+    return isset($this->httpRequestHeaders[$header]) ? $this->httpRequestHeaders[$header] : NULL;
   }
 
   /**
@@ -102,14 +102,14 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining purposes
    *
-   * @see BetterGetterHttp::httpQueryHeaders
+   * @see BetterGetterHttp::httpRequestHeaders
    */
-  public function setQueryHeader($header, $value) {
+  public function setRequestHeader($header, $value) {
     if (is_array($value)) {
-      $this->httpQueryHeaders[$header] = $value;
+      $this->httpRequestHeaders[$header] = $value;
     }
     else {
-      $this->httpQueryHeaders[$header] = array($value);
+      $this->httpRequestHeaders[$header] = array($value);
     }
     return $this;
   }
@@ -121,8 +121,8 @@ class BetterGetterHttp extends BetterGetter {
    *   An associative array keyed by HTTP headers, with values being
    *   one-dimensional arrays of values for that header.
    */
-  public function getQueryHeaders() {
-    return $this->httpQueryHeaders;
+  public function getRequestHeaders() {
+    return $this->httpRequestHeaders;
   }
 
   /**
@@ -136,7 +136,7 @@ class BetterGetterHttp extends BetterGetter {
    *
    * @see BetterGetterHttp::setHttpHeader()
    */
-  public function setQueryHeaders($headers) {
+  public function setRequestHeaders($headers) {
     foreach ($headers as $header => $value) {
       $this->setHttpHeader($header, $value);
     }
@@ -144,18 +144,18 @@ class BetterGetterHttp extends BetterGetter {
   }
 
   /**
-   * Get the respose body of a successful HTTP query.
+   * Get the respose body of a successful HTTP response.
    *
    * @return
-   *   A string containing the response body of the query (or NULL if the cURL
-   *   handle hasn't been executed yet).
+   *   A string containing the body of the response (or NULL if the cURL handle
+   *   hasn't been executed yet).
    */
   public function getResponseBody() {
     return $this->httpResponseBody;
   }
 
   /**
-   * Get all headers returned from a successful HTTP query.
+   * Get all headers returned from a successful HTTP response.
    *
    * @return
    *   An array keyed by header, with the value being a one-dimensional array
@@ -172,7 +172,7 @@ class BetterGetterHttp extends BetterGetter {
   }
 
   /**
-   * Get all values for a particular HTTP header from an HTTP query response.
+   * Get all values for a particular HTTP header from an HTTP response.
    *
    * @param $header
    *   The header to return values for.
@@ -188,7 +188,7 @@ class BetterGetterHttp extends BetterGetter {
   }
 
   /**
-   * Get all or part of the HTTP status of the query response.
+   * Get all or part of the HTTP status of the response.
    *
    * @param $part
    *   The part of the response to return, which is one of:
@@ -217,9 +217,9 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    */
-  public function prepareQueryHeaders() {
+  public function prepareRequestHeaders() {
     $headers = array();
-    foreach ($this->httpQueryHeaders as $header => $values) {
+    foreach ($this->httpRequestHeaders as $header => $values) {
       foreach ($values as $value) {
         $headers[] = $header . ': ' . $value;
       }
