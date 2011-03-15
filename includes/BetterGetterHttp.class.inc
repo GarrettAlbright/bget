@@ -21,20 +21,32 @@ class BetterGetterHttp extends BetterGetter {
    * Because it's theoretically possible to send headers repeated with different
    * values, though I'm not sure if this is in common use.
    */
-  protected $httpHeadersOut = array();
+  protected $httpQueryHeaders = array();
+
+  /**
+   * The raw, unparsed HTTP response header string.
+   */
+  protected $httpRawResponseHeaders;
 
   /**
    * An associative array of headers sent from the server as part of the server
    * response, keyed by header field name.
    *
-   * Like with BetterGetterHttp::httpHeadersOut, each value is a flat array of
+   * Like with BetterGetterHttp::httpQueryHeaders, each value is a flat array of
    * values, since the same field with different browsers may be sent by
    * servers. Unlike with outgoing headers, this practice *is* in common use,
    * particularly when it comes to cookies.
+   * 
+   * Note that this is not populated immediately after a response is returned;
+   * it's populated by the parsehttpResponseHeaders() method, which will be called if
+   * the getResponseHeaders() or getResponseHeader() methods are called and the
+   * headers haven't been parsed yet. This makes it possible to quickly get an
+   * HTTP response without the overhead of parsing the headers if they're not
+   * needed.
    *
    * @see http://en.wikipedia.org/wiki/HTTP_cookie#Setting_a_cookie
    */
-  protected $httpHeadersIn = array();
+  protected $httpResponseHeaders;
 
   /**
    * A string containing the HTTP response, minus headers.
@@ -74,8 +86,8 @@ class BetterGetterHttp extends BetterGetter {
    *   The values currently being stored for the header, in a one-dimensional
    *   array; or NULL if none have been defined yet.
    */
-  public function getHttpHeader($header) {
-    return isset($this->httpHeadersOut[$header]) ? $this->httpHeadersOut[$header] : NULL;
+  public function getQueryHeader($header) {
+    return isset($this->httpQueryHeaders[$header]) ? $this->httpQueryHeaders[$header] : NULL;
   }
 
   /**
@@ -90,14 +102,14 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining purposes
    *
-   * @see BetterGetterHttp::httpHeadersOut
+   * @see BetterGetterHttp::httpQueryHeaders
    */
-  public function setHttpHeader($header, $value) {
+  public function setQueryHeader($header, $value) {
     if (is_array($value)) {
-      $this->httpHeadersOut[$header] = $value;
+      $this->httpQueryHeaders[$header] = $value;
     }
     else {
-      $this->httpHeadersOut[$header] = array($value);
+      $this->httpQueryHeaders[$header] = array($value);
     }
     return $this;
   }
@@ -109,8 +121,8 @@ class BetterGetterHttp extends BetterGetter {
    *   An associative array keyed by HTTP headers, with values being
    *   one-dimensional arrays of values for that header.
    */
-  public function getHttpHeaders() {
-    return $this->httpHeadersOut;
+  public function getQueryHeaders() {
+    return $this->httpQueryHeaders;
   }
 
   /**
@@ -124,7 +136,7 @@ class BetterGetterHttp extends BetterGetter {
    *
    * @see BetterGetterHttp::setHttpHeader()
    */
-  public function setHttpHeaders($headers) {
+  public function setQueryHeaders($headers) {
     foreach ($headers as $header => $value) {
       $this->setHttpHeader($header, $value);
     }
@@ -149,10 +161,14 @@ class BetterGetterHttp extends BetterGetter {
    *   An array keyed by header, with the value being a one-dimensional array
    *   of values returned for that header.
    *
-   * @see BetterGetterHttp::httpHeadersIn
+   * @see BetterGetterHttp::httpResponseHeaders
    */
   public function getResponseHeaders() {
-    return $this->httpHeadersIn;
+    // If we have a response, but the response headers haven't been parsed yet…
+    if ($this->rawResponse !== NULL && $this->httpResponseHeaders === NULL) {
+      $this->parseResponseHeaders();
+    }
+    return $this->httpResponseHeaders;
   }
 
   /**
@@ -164,10 +180,11 @@ class BetterGetterHttp extends BetterGetter {
    *   A one-dimensional array of values the server sent for that header; or
    *   NULL if none.
    *
-   * @see BetterGetterHttp::httpHeadersIn
+   * @see BetterGetterHttp::httpResponseHeaders
    */
   public function getResponseHeader($header) {
-    return isset($this->httpHeadersOut[$header]) ? $this->httpHeadersOut[$header] : NULL;
+    $headers = $this->getResponseHeaders();
+    return isset($headers[$header]) ? $headers[$header] : NULL;
   }
 
   /**
@@ -202,7 +219,7 @@ class BetterGetterHttp extends BetterGetter {
    */
   public function prepareHttpHeaders() {
     $headers = array();
-    foreach ($this->httpHeadersOut as $header => $values) {
+    foreach ($this->httpQueryHeaders as $header => $values) {
       foreach ($values as $value) {
         $headers[] = $header . ': ' . $value;
       }
@@ -222,7 +239,7 @@ class BetterGetterHttp extends BetterGetter {
    *   $this, for chaining.
    */
   public function execute() {
-    return $this->prepareHttpHeaders()->prepareCurlHandle()->executeCurlHandle()->parseResponseHeaders();
+    return $this->prepareHttpHeaders()->prepareCurlHandle()->executeCurlHandle()->splitResponse();
   }
 
   /**
@@ -230,9 +247,9 @@ class BetterGetterHttp extends BetterGetter {
    * appropriately.
    *
    * @return
-   *  $this, for chaining.
+   *   $this, for chaining.
    */
-  public function parseResponseHeaders() {
+  public function splitResponse() {
     // cURL may return several sets of headers when doing HTTP authentication.
     // We'll use the last headers sent as the ones to parse.
     $chunks = preg_split('/\n\n|\r\n\r\n/', $this->rawResponse, 0, PREG_SPLIT_OFFSET_CAPTURE);
@@ -248,12 +265,13 @@ class BetterGetterHttp extends BetterGetter {
       else {
         // Okay, if we didn't find it, then consider this chunk the first piece
         // of the body, and the previous chunk the headers to use.
-        $unparsed_headers = $chunks[$chunk_key - 1][0];
+        $this->httpRawResponseHeaders = $chunks[$chunk_key - 1][0];
         $this->httpResponseBody = substr($this->rawResponse, $chunk[1]);
         break;
       }
     }
-    if (!isset($unparsed_headers)) {
+    // Did we not find any plausible headers in the response?
+    if (empty($this->httpRawResponseHeaders)) {
       throw new BetterGetterHttpException('Plausible HTTP headers not found.');
     }
     $this->httpStatus = array(
@@ -262,17 +280,29 @@ class BetterGetterHttp extends BetterGetter {
       'code' => $good_status_matches[2],
       'status' => $good_status_matches[3],
     );
+    return $this;
+  }
 
-    $header_lines = preg_split('/\n|\r\n/', $unparsed_headers);
+  /**
+   * Parse the headers of a HTTP response into an easily-accessible array.
+   *
+   * @return
+   *   $this, for chaining.
+   *
+   * @see BetterGetterHttp::httpResponseHeaders
+   */
+  public function parseResponseHeaders() {
+    $header_lines = preg_split('/\n|\r\n/', $this->httpRawResponseHeaders);
+    $this->httpResponseHeaders = array();
     // The next() trick below is a silly trick to let us skip the first item
     // in the array, which will be the HTTP status line.
     while ($header_line = next($header_lines)) {
       $header_parts = explode(': ', $header_line, 2);
-      if (isset($this->httpHeadersIn[$header_parts[0]])) {
-        $this->httpHeadersIn[$header_parts[0]][] = $header_parts[1];
+      if (isset($this->httpResponseHeaders[$header_parts[0]])) {
+        $this->httpResponseHeaders[$header_parts[0]][] = $header_parts[1];
       }
       else {
-        $this->httpHeadersIn[$header_parts[0]] = array($header_parts[1]);
+        $this->httpResponseHeaders[$header_parts[0]] = array($header_parts[1]);
       }
     }
     return $this;
