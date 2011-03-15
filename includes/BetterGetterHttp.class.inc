@@ -22,7 +22,7 @@ class BetterGetterHttp extends BetterGetter {
    * values, though I'm not sure if this is in common use.
    */
   protected $httpHeadersOut = array();
-  
+
   /**
    * An associative array of headers sent from the server as part of the server
    * response, keyed by header field name.
@@ -35,11 +35,29 @@ class BetterGetterHttp extends BetterGetter {
    * @see http://en.wikipedia.org/wiki/HTTP_cookie#Setting_a_cookie
    */
   protected $httpHeadersIn = array();
-  
+
+  /**
+   * A string containing the HTTP response, minus headers.
+   */
   protected $httpResponseBody;
 
+  /**
+   * An array of HTTP status information.
+   *
+   * The associative array will have the following keys:
+   * - raw: The raw status header, eg "HTTP/1.1 404 Not Found"
+   * - version: The HTTP version, eg "HTTP/1.1"
+   * - code: The numeric status code, eg "404"
+   * - status: The textual status description, eg "Not Found"
+   */
   protected $httpStatus;
 
+  /**
+   * Override the setCurlOpt method to stop clever people from using it to set
+   * HTTP headers
+   *
+   * @throws BetterGetterConfigException
+   */
   public function setCurlOpt($option, $value) {
     if ($option === CURLOPT_HTTPHEADER) {
       throw new BetterGetterConfigException('Please use the setHttpHeader() or setHttpHeaders() methods to set HTTP headers.');
@@ -47,18 +65,34 @@ class BetterGetterHttp extends BetterGetter {
     return parent::setCurlOpt($option, $value);
   }
 
-  public function setCurlOpts($options) {
-    if (isset($options[CURLOPT_HTTPHEADER])) {
-      throw new BetterGetterConfigException('Please use the setHttpHeader() or setHttpHeaders() methods to set HTTP headers.');
-    }
-    return parent::setCurlOpts($options);
-  }
-  
-  function getHttpHeader($header) {
+  /**
+   * Get an outgoing HTTP header's value.
+   *
+   * @param $header
+   *   The outgoing header.
+   * @return
+   *   The values currently being stored for the header, in a one-dimensional
+   *   array; or NULL if none have been defined yet.
+   */
+  public function getHttpHeader($header) {
     return isset($this->httpHeadersOut[$header]) ? $this->httpHeadersOut[$header] : NULL;
   }
-  
-  function setHttpHeader($header, $value) {
+
+  /**
+   * Set an outgoing HTTP header.
+   *
+   * @param $header
+   *   The header to set a value for.
+   * @param $value
+   *   The value to be set for the given header. For convenience, this may be
+   *   either a single value or an array; the former for simplicity's sake, and
+   *   the latter when it is occasionally necessary.
+   * @return
+   *   $this, for chaining purposes
+   *
+   * @see BetterGetterHttp::httpHeadersOut
+   */
+  public function setHttpHeader($header, $value) {
     if (is_array($value)) {
       $this->httpHeadersOut[$header] = $value;
     }
@@ -67,35 +101,106 @@ class BetterGetterHttp extends BetterGetter {
     }
     return $this;
   }
-  
-  function getHttpHeaders() {
+
+  /**
+   * Get all outgoing HTTP headers.
+   *
+   * @return
+   *   An associative array keyed by HTTP headers, with values being
+   *   one-dimensional arrays of values for that header.
+   */
+  public function getHttpHeaders() {
     return $this->httpHeadersOut;
   }
-  
-  function setHttpHeaders($headers) {
+
+  /**
+   * Set multiple outgoing HTTP headers.
+   *
+   * @param $headers
+   *   An associative array keyed by HTTP header, with each value being either a
+   *   single value or a one-dimensional array of values for the header.
+   * @return
+   *   $this, for chaining.
+   *
+   * @see BetterGetterHttp::setHttpHeader()
+   */
+  public function setHttpHeaders($headers) {
     foreach ($headers as $header => $value) {
       $this->setHttpHeader($header, $value);
     }
     return $this;
   }
 
-  function getResponseBody() {
+  /**
+   * Get the respose body of a successful HTTP query.
+   *
+   * @return
+   *   A string containing the response body of the query (or NULL if the cURL
+   *   handle hasn't been executed yet).
+   */
+  public function getResponseBody() {
     return $this->httpResponseBody;
   }
 
-  function getResponseHeaders() {
+  /**
+   * Get all headers returned from a successful HTTP query.
+   *
+   * @return
+   *   An array keyed by header, with the value being a one-dimensional array
+   *   of values returned for that header.
+   *
+   * @see BetterGetterHttp::httpHeadersIn
+   */
+  public function getResponseHeaders() {
     return $this->httpHeadersIn;
   }
 
-  function getResponseStatus($part = NULL) {
-    return empty($part) ? $this->httpStatus : $this->httpStatus[$part];
-  }
-
-  function getResponseHeader($header) {
+  /**
+   * Get all values for a particular HTTP header from an HTTP query response.
+   *
+   * @param $header
+   *   The header to return values for.
+   * @return
+   *   A one-dimensional array of values the server sent for that header; or
+   *   NULL if none.
+   *
+   * @see BetterGetterHttp::httpHeadersIn
+   */
+  public function getResponseHeader($header) {
     return isset($this->httpHeadersOut[$header]) ? $this->httpHeadersOut[$header] : NULL;
   }
 
-  function prepareHttpHeaders() {
+  /**
+   * Get all or part of the HTTP status of the query response.
+   *
+   * @param $part
+   *   The part of the response to return, which is one of:
+   *   - raw: The raw status header, eg "HTTP/1.1 404 Not Found"
+   *   - version: The HTTP version, eg "HTTP/1.1"
+   *   - code: The numeric status code, eg "404"
+   *   - status: The textual status description, eg "Not Found"
+   *   - NULL: An associative array with keys and values as above.
+   * @return
+   *   Either a string containing the part of the HTTP status as selected by the
+   *   $part parameter, or an array containing all parts if $part is NULL.
+   *
+   * @see BetterGetterHttp::httpStatus
+   */
+  public function getResponseStatus($part = NULL) {
+    return empty($part) ? $this->httpStatus : $this->httpStatus[$part];
+  }
+
+  /**
+   * Format the outgoing HTTP header array into a format the cURL library is
+   * expecting and assign them as a cURL option.
+   *
+   * This method should probably be called right before the cURL handle is
+   * executed.
+   *
+   * @return
+   *   $this, for chaining.
+   */
+  public function prepareHttpHeaders() {
     $headers = array();
     foreach ($this->httpHeadersOut as $header => $values) {
       foreach ($values as $value) {
@@ -110,11 +215,24 @@ class BetterGetterHttp extends BetterGetter {
     return $this;
   }
 
-  function execute() {
+  /**
+   * Prepare and execute the cURL handle and parse the response.
+   *
+   * @return
+   *   $this, for chaining.
+   */
+  public function execute() {
     return $this->prepareHttpHeaders()->prepareCurlHandle()->executeCurlHandle()->parseResponseHeaders();
   }
-  
-  function parseResponseHeaders() {
+
+  /**
+   * Split the HTTP response into body and header parts and handle both
+   * appropriately.
+   *
+   * @return
+   *  $this, for chaining.
+   */
+  public function parseResponseHeaders() {
     // cURL may return several sets of headers when doing HTTP authentication.
     // We'll use the last headers sent as the ones to parse.
     $chunks = preg_split('/\n\n|\r\n\r\n/', $this->rawResponse, 0, PREG_SPLIT_OFFSET_CAPTURE);
@@ -158,7 +276,7 @@ class BetterGetterHttp extends BetterGetter {
       }
     }
     return $this;
-  }     
+  }
 }
 
 class BetterGetterHttpException extends Exception {}
