@@ -172,9 +172,9 @@ class BetterGetter {
    *   $this, for chaining.
    */
   public function prepareCurlHandle() {
-    $this->curlHandler = curl_init($this->uri);
+    $this->curlHandle = curl_init($this->uri);
     $this->curlOpts[CURLOPT_RETURNTRANSFER] = TRUE;
-    curl_setopt_array($this->curlHandler, $this->curlOpts);
+    curl_setopt_array($this->curlHandle, $this->curlOpts);
     return $this;
   }
 
@@ -186,10 +186,10 @@ class BetterGetter {
    *   $this, for chaining.
    */
   public function executeCurlHandle() {
-    if (($this->rawResponse = curl_exec($this->curlHandler)) === FALSE) {
+    if (($this->rawResponse = curl_exec($this->curlHandle)) === FALSE) {
       // Get error number and handler
-      $curl_errno = curl_errno($this->curlHandler);
-      $curl_error = curl_error($this->curlHandler);
+      $curl_errno = curl_errno($this->curlHandle);
+      $curl_error = curl_error($this->curlHandle);
       $this->closeCurlHandle();
       throw new BetterGetterCurlException($curl_error, $curl_errno);
     }
@@ -203,7 +203,7 @@ class BetterGetter {
    *   $this, for chaining.
    */
   public function closeCurlHandle() {
-    curl_close($this->curlHandler);
+    curl_close($this->curlHandle);
     return $this;
   }
 }
