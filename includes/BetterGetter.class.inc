@@ -63,6 +63,16 @@ class BetterGetter {
   }
 
   /**
+   * Returns whether the cURL handle has been executed yet.
+   *
+   * @return
+   *   A boolean representing whether the cURL handle has been executed.
+   */
+  public function hasExecuted() {
+    return !is_null($this->rawResponse);
+  }
+
+  /**
    * Getter for the URI member variable.
    */
   public function getUri() {
