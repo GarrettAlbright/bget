@@ -239,7 +239,7 @@ class BetterGetterHttp extends BetterGetter {
    *   $this, for chaining.
    */
   public function execute() {
-    return $this->prepareQueryHeaders()->prepareCurlHandle()->executeCurlHandle()->splitResponse();
+    return $this->prepareQueryHeaders()->prepareCurlHandle()->executeCurlHandle()->closeCurlHandle()splitResponse();
   }
 
   /**
