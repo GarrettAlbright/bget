@@ -217,7 +217,7 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    */
-  public function prepareHttpHeaders() {
+  public function prepareQueryHeaders() {
     $headers = array();
     foreach ($this->httpQueryHeaders as $header => $values) {
       foreach ($values as $value) {
@@ -239,7 +239,7 @@ class BetterGetterHttp extends BetterGetter {
    *   $this, for chaining.
    */
   public function execute() {
-    return $this->prepareHttpHeaders()->prepareCurlHandle()->executeCurlHandle()->splitResponse();
+    return $this->prepareQueryHeaders()->prepareCurlHandle()->executeCurlHandle()->splitResponse();
   }
 
   /**
