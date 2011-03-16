@@ -72,3 +72,50 @@ class BgetTestCase extends DrupalWebTestCase {
     }
   }
 }
+
+class BgetHttpTestCase extends DrupalWebTestCase {
+  function getInfo() {
+    return array(
+      'name' => 'Better Getter HTTP tests',
+      'description' => 'Tests for Better Getter HTTP class',
+      'group' => 'Better Getter',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('bget');
+  }
+
+  function testSetCurlOpt() {
+    $message = t('Setting CURLOPT_HTTPHEADER cURL option throws BetterGetterConfigException');
+    $bg = new BetterGetterHttp('http://example.com/');
+    try {
+      $bg->setCurlOpt(CURLOPT_HTTPHEADER, array());
+      $this->fail($message);
+    }
+    catch (Exception $e) {
+      if (is_a($e, 'BetterGetterConfigException')) {
+        $this->pass($message);
+      }
+      else {
+        $this->fail($message);
+      }
+    }
+  }
+
+  function testRequestHeaderHandling() {
+    $bg = new BetterGetterHttp('http://example.com/');
+    $headers = array(
+      'User-Agent' => 'BetterGetter',
+      'X-Foo' => array('Bar', 'Baz'),
+    );
+    $bg->setRequestHeader('User-Agent', $headers['User-Agent']);
+    $this->assertEqual($bg->getRequestHeader('User-Agent'), array($headers['User-Agent']), t('Getting and setting a single header'));
+    $bg->setRequestHeaders($headers);
+    $this->assertEqual($bg->getRequestHeader('X-Foo'), $headers['X-Foo'], t('Setting multiple headers with getRequestHeader()'));
+    $this->assertEqual($bg->getRequestHeaders(), array('User-Agent' => array($headers['User-Agent']), 'X-Foo' => $headers['X-Foo']), t('Getting multiple headers with getRequestHeaders'));
+    $bg = new BetterGetterHttp(url('<front>', array('absolute' => TRUE)));
+    $bg->setCurlOpt(CURLOPT_USERAGENT, 'BetterGetter')->execute();
+    $this->assertEqual($bg->getRequestHeader('User-Agent'), array('BetterGetter'), t('Parsing request headers after successful request'));
+  }
+}
