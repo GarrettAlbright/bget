@@ -164,6 +164,24 @@ class BetterGetter {
   }
 
   /**
+   * Set the raw server response.
+   *
+   * In normal usage, this doesn't have a practical application, since the
+   * entire idea of using something like this is to fetch data from a remote
+   * server. However, this can be useful for testing purposes, particularly
+   * testing stuff that parses the response string.
+   *
+   * @param $response
+   *   The string to be set as the response string.
+   * @return
+   *   $self, for chaining purposes.
+   */
+  public function setRawResponse($response) {
+    $this->rawResponse = $response;
+    return $this;
+  }
+
+  /**
    * Prepare and execute the cURL handle and set the response.
    *
    * @return
