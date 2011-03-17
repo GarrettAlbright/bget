@@ -103,6 +103,64 @@ class BgetHttpTestCase extends DrupalWebTestCase {
     }
   }
 
+  function testResponseSplitting() {
+    $test_response = 'We the People of the United States, in Order to form a more perfect Union, establish Justice, insure domestic Tranquility, provide for the common defence, promote the general Welfare, and secure the Blessings of Liberty to ourselves and our Posterity, do ordain and establish this Constitution for the United States of America.';
+    $bg = new BetterGetterHttp('http://example.com/');
+    $bg->setRawResponse($test_response);
+    $this->assertEqual($bg->getRawResponse(), $test_response, t('getRawResponse() and setRawResponse() methods working predictably'));
+    $bg = new BetterGetterHttp('http://example.com/');
+    $message = t('Throw BetterGetterHttpException when parsing empty response');
+    try {
+      $bg->setRawResponse('')->splitResponse();
+      $this->fail($message);
+    }
+    catch (Exception $e) {
+      if (is_a($e, 'BetterGetterHttpException')) {
+        $this->pass($message);
+      }
+      else {
+        $this->fail($message);
+      }
+    }
+    $bg = new BetterGetterHttp('http://example.com/');
+    $message = t('Throw BetterGetterHttpException when parsing multi-line but invalid response');
+    try {
+      $bg->setRawResponse("This is a totally invalid HTTP response.\r\nTotally invalid.\r\n\r\nYeah. This should fail.")->splitResponse();
+      $this->fail($message);
+    }
+    catch (Exception $e) {
+      if (is_a($e, 'BetterGetterHttpException')) {
+        $this->pass($message);
+      }
+      else {
+        $this->fail($message);
+      }
+    }
+    // http://en.wikipedia.org/wiki/List_of_HTTP_status_codes#418
+    $body = "<!doctype html>\r\n<html>\r\n<head><title>A silly test page.</title></head>\r\n\r\n<body><h1>PARTY TIME!</h1></body>\r\n</html>";
+    $valid_response = "HTTP/1.1 418 I'm a teapot\r\nDate: Tue, 15 Mar 2011 21:49:17 GMT\r\nServer: albrighttpd/1.2.34\r\nConnection: close\r\n\r\n" . $body;
+    $message = t('Parsing valid response did not fail.');
+    $bg = new BetterGetterHttp('http://example.com/');
+    try {
+      $bg->setRawResponse($valid_response)->splitResponse();
+      debug($bg->getResponseStatus());
+      debug($bg->getResponseHeader('Server'));
+      debug($bg->getResponseBody());
+      if ($bg->getResponseStatus('status') === 'I\'m a teapot' &&
+        $bg->getResponseHeader('Server') === array('albrighttpd/1.2.34') &&
+        $bg->getResponseBody() === $body
+      ) {
+        $this->pass($message);
+      }
+      else {
+        $this->fail($message);
+      }
+    }
+    catch (Exception $e) {
+      $this->fail($message);
+    }
+  }
+
   function testRequestHeaderHandling() {
     $bg = new BetterGetterHttp('http://example.com/');
     $headers = array(

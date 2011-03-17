@@ -279,6 +279,10 @@ class BetterGetterHttp extends BetterGetter {
     // preg_split() here instead of explode() so that we can capture the offset
     // of each chunk using PREG_SPLIT_OFFSET_CAPTURE.
     $chunks = preg_split('/\r\n\r\n/', $this->rawResponse, 0, PREG_SPLIT_OFFSET_CAPTURE);
+    if (count($chunks) < 2) {
+      // No way that was a valid HTTP response. Just give up.
+      throw new BetterGetterHttpException('Plausible HTTP headers not found.');
+    }
     // Find the last chunk that looks like a chunk of HTTP headers.
     foreach ($chunks as $chunk_key => $chunk) {
       // Look for a HTTP response's first line, which will look something like
@@ -287,6 +291,11 @@ class BetterGetterHttp extends BetterGetter {
         // A failed preg_match() nulls out the variable passed to gather
         // matches, so keep track of our last success.
         $good_status_matches = $status_matches;
+      }
+      elseif ($chunk_key == 0) {
+        // Wait. The first chunk didn't look like a header? Might as well bail
+        // out now.
+        throw new BetterGetterHttpException('Plausible HTTP headers not found.');
       }
       else {
         // Okay, if we didn't find it, then consider this chunk the first piece
@@ -301,10 +310,11 @@ class BetterGetterHttp extends BetterGetter {
       throw new BetterGetterHttpException('Plausible HTTP headers not found.');
     }
     $this->httpStatus = array(
-      'raw' => $good_status_matches[0],
+      // $good_status_matches[0] will include the line break characters, so…
+      'raw' => trim($good_status_matches[0]),
       'version' => $good_status_matches[1],
       'code' => $good_status_matches[2],
-      'status' => $good_status_matches[3],
+      'status' => trim($good_status_matches[3]),
     );
     return $this;
   }
