@@ -94,7 +94,7 @@ class BgetHttpTestCase extends DrupalWebTestCase {
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterConfigException')) {
+      if (is_a($e, 'BetterGetterConfigException') && $e->getCode() == BetterGetterHttp::ERR_USE_SETREQUESTHEADER) {
         $this->pass($message);
       }
       else {
@@ -115,7 +115,7 @@ class BgetHttpTestCase extends DrupalWebTestCase {
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterHttpException')) {
+      if (is_a($e, 'BetterGetterHttpException') && $e->getCode() == BetterGetterHttp::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE) {
         $this->pass($message);
       }
       else {
@@ -129,7 +129,7 @@ class BgetHttpTestCase extends DrupalWebTestCase {
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterHttpException')) {
+      if (is_a($e, 'BetterGetterHttpException') && $e->getCode() == BetterGetterHttp::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE) {
         $this->pass($message);
       }
       else {

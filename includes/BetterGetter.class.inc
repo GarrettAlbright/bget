@@ -237,8 +237,10 @@ class BetterGetter {
 }
 
 /**
- * Simple exception specific to Better Getter errors.
+ * Simple exceptions specific to Better Getter errors.
  */
-class BetterGetterCurlException extends Exception {}
+class BetterGetterException extends Exception {}
 
-class BetterGetterConfigException extends Exception {}
+class BetterGetterCurlException extends BetterGetterException {}
+
+class BetterGetterConfigException extends BetterGetterException {}

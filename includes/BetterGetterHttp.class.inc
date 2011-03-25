@@ -14,6 +14,20 @@
 class BetterGetterHttp extends BetterGetter {
 
   /**
+   * Error constants.
+   */
+
+  /**
+   * HTTP headers couldn't be parsed.
+   */
+  const ERR_HTTP_HEADERS_NOT_EXTRACTIBLE = 1;
+  
+  /**
+   * Please use the setRequestHeader() method to set request headers.
+   */
+  const ERR_USE_SETREQUESTHEADER = 2;
+
+  /**
    * An associative array of headers to be sent as part of the server request,
    * keyed by header field name.
    *
@@ -89,7 +103,7 @@ class BetterGetterHttp extends BetterGetter {
    */
   public function setCurlOpt($option, $value) {
     if ($option === CURLOPT_HTTPHEADER) {
-      throw new BetterGetterConfigException('Please use the setRequestHeader() method to set HTTP headers.');
+      throw new BetterGetterConfigException('Please use the setRequestHeader() method to set HTTP headers.', self::ERR_USE_SETREQUESTHEADER);
     }
     return parent::setCurlOpt($option, $value);
   }
@@ -272,6 +286,8 @@ class BetterGetterHttp extends BetterGetter {
    *
    * @return
    *   $this, for chaining.
+   *
+   * @throws BetterGetterHttpException
    */
   public function splitResponse() {
     // cURL may return several sets of headers when doing HTTP authentication.
@@ -281,7 +297,7 @@ class BetterGetterHttp extends BetterGetter {
     $chunks = preg_split('/\r\n\r\n/', $this->rawResponse, 0, PREG_SPLIT_OFFSET_CAPTURE);
     if (count($chunks) < 2) {
       // No way that was a valid HTTP response. Just give up.
-      throw new BetterGetterHttpException('Plausible HTTP headers not found.');
+      throw new BetterGetterHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
     }
     // Find the last chunk that looks like a chunk of HTTP headers.
     foreach ($chunks as $chunk_key => $chunk) {
@@ -295,7 +311,7 @@ class BetterGetterHttp extends BetterGetter {
       elseif ($chunk_key == 0) {
         // Wait. The first chunk didn't look like a header? Might as well bail
         // out now.
-        throw new BetterGetterHttpException('Plausible HTTP headers not found.');
+        throw new BetterGetterHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
       }
       else {
         // Okay, if we didn't find it, then consider this chunk the first piece
@@ -307,7 +323,7 @@ class BetterGetterHttp extends BetterGetter {
     }
     // Did we not find any plausible headers in the response?
     if (empty($this->httpRawResponseHeaders)) {
-      throw new BetterGetterHttpException('Plausible HTTP headers not found.');
+      throw new BetterGetterHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
     }
     $this->httpStatus = array(
       // $good_status_matches[0] will include the line break characters, so…
@@ -372,4 +388,4 @@ class BetterGetterHttp extends BetterGetter {
   }
 }
 
-class BetterGetterHttpException extends Exception {}
+class BetterGetterHttpException extends BetterGetterException {}
