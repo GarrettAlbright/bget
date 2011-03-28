@@ -18,14 +18,20 @@ class BetterGetterHttp extends BetterGetter {
    */
 
   /**
-   * HTTP headers couldn't be parsed.
+   * Please use the setPostField() or setRawPostData() methods to set POST data.
    */
-  const ERR_HTTP_HEADERS_NOT_EXTRACTIBLE = 1;
+  const ERR_USE_SETPOSTFIELD = 1;
   
   /**
    * Please use the setRequestHeader() method to set request headers.
    */
   const ERR_USE_SETREQUESTHEADER = 2;
+
+  /**
+   * HTTP headers couldn't be parsed.
+   */
+  const ERR_HTTP_HEADERS_NOT_EXTRACTIBLE = 900;
+
 
   /**
    * An associative array of headers to be sent as part of the server request,
@@ -53,11 +59,34 @@ class BetterGetterHttp extends BetterGetter {
    * The raw, unparsed HTTP request header string.
    */  
   protected $httpRawRequestHeaders;
+ 
+  /**
+   * POST parameters, if any, as an array for easy getting and setting.
+   *
+   * If this array (or $httpRawPostData) is not empty when a query is made,
+   * the query will be a POST query made with this data (unless overriden with
+   * the CURLOPT_CUSTOMREQUEST cURL option).
+   *
+   * Note that if both $httpPostFields and an $httpRawPostData are set at query
+   * time, $httpRawPostData will take precedence and this data will be ignored.
+   *
+   * @see BetterGetterHttp::$httpRawPostData
+   */
+  protected $httpPostFields = array();
 
   /**
-   * The raw, unparsed HTTP response header string.
+   * Raw data to be sent as POST query data.
+   *
+   * If set, the query will be a POST query, unless overridden with the
+   * CURLOPT_CUSTOMREQUEST cURL option.
+   *
+   * Note that if both $httpPostFields and an $httpRawPostData are set at query
+   * time, $httpRawPostData will take precedence and $httpPostFields will be
+   * ignored.
+   *
+   * @see BetterGetterHttp::$httpPostFields
    */
-  protected $httpRawResponseHeaders;
+  protected $httpRawPostData;
 
   /**
    * An associative array of headers sent from the server as part of the server
@@ -78,6 +107,11 @@ class BetterGetterHttp extends BetterGetter {
    * @see http://en.wikipedia.org/wiki/HTTP_cookie#Setting_a_cookie
    */
   protected $httpResponseHeaders;
+
+  /**
+   * The raw, unparsed HTTP response header string.
+   */
+  protected $httpRawResponseHeaders;
 
   /**
    * A string containing the HTTP response, minus headers.
@@ -104,6 +138,9 @@ class BetterGetterHttp extends BetterGetter {
   public function setCurlOpt($option, $value) {
     if ($option === CURLOPT_HTTPHEADER) {
       throw new BetterGetterConfigException('Please use the setRequestHeader() method to set HTTP headers.', self::ERR_USE_SETREQUESTHEADER);
+    }
+    elseif ($option === CURLOPT_POSTFIELDS) {
+      throw new BetterGetterConfigException('Please use the setPostField() or setRawPostData() methods to set POST data.', self::ERR_USE_SETPOSTFIELD);
     }
     return parent::setCurlOpt($option, $value);
   }
@@ -179,6 +216,94 @@ class BetterGetterHttp extends BetterGetter {
   }
 
   /**
+   * Get a set HTTP post field value.
+   *
+   * @param $field
+   *   The field to return the value for.
+   * @return
+   *   The set value for the field, or NULL if not set.
+   */
+  public function getPostField($field) {
+    return isset($this->httpPostFields[$field]) ? $this->httpPostFields[$field] : NULL;
+  }
+
+  /**
+   * Set an HTTP post field value.
+   *
+   * @param $field
+   *   The field to set a value for; or NULL to "unset" a field.
+   * @param $value
+   *   The value to assign to the field.
+   * @return
+   *   $this, for chaining.
+   */
+  public function setPostField($field, $value) {
+    if ($value === NULL) {
+      unset($this->httpPostFields[$field]);
+    }
+    else {
+      $this->httpPostFields[$field] = $value;
+    }
+    return $this;
+  }
+
+  /**
+   * Get all HTTP post fields.
+   *
+   * @return
+   *   An array of all set post fields.
+   */
+  public function getPostFields() {
+    return $this->httpPostFields;
+  }
+
+  /**
+   * Set multiple post fields at once.
+   *
+   * @param $fields 
+   *   An array keyed by post field, with corresponding values.
+   * @return
+   *   $this, for chaining.
+   *
+   * @see BetterGetterHttp::setPostField
+   */
+  public function setPostFields($fields) {
+    foreach ($fields as $field => $value) {
+      $this->setPostField($field, $value);
+    }
+    return $this;
+  }
+
+  /**
+   * Get the raw post data.
+   *
+   * Note that this may be NULL even if there was post data as definied by the
+   * httpPostFields property (data in key => value format, instead of just a
+   * big blob o' data as intended to be used with the httpRawPostData parameter)
+   * both before and after a successful query. Care should be taken to check
+   * both parameters if necessary when checking for post data.
+   *
+   * @return
+   *   The raw post data as a string, or NULL if none.
+   */
+   public function getRawPostData() {
+    return $this->httpRawPostData;
+  }
+
+  /**
+   * Set the raw post data.
+   *
+   * @param $data
+   *   The data, as a string (or NULL to "empty out" previous data).
+   * @return
+   *   $this, for chaining.
+   */
+  public function setRawPostData($data = NULL) {
+    $this->httpRawPostData = $data;
+    return $this;
+  }
+
+  /**
    * Get the respose body of a successful HTTP response.
    *
    * @return
@@ -196,7 +321,7 @@ class BetterGetterHttp extends BetterGetter {
    *   An array keyed by header, with the value being a one-dimensional array
    *   of values returned for that header.
    *
-   * @see BetterGetterHttp::httpResponseHeaders
+   * @see BetterGetterHttp::$httpResponseHeaders
    */
   public function getResponseHeaders() {
     // If we have a response, but the response headers haven't been parsed yet…
@@ -244,7 +369,8 @@ class BetterGetterHttp extends BetterGetter {
 
   /**
    * Format the outgoing HTTP header array into a format the cURL library is
-   * expecting and assign them as a cURL option.
+   * expecting and assign them as a cURL option. Also assign POST data, if
+   * applicable.
    *
    * This method should probably be called right before the cURL handle is
    * executed.
@@ -252,7 +378,8 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    */
-  public function prepareRequestHeaders() {
+  public function prepareRequest() {
+    // Prepare outgoing HTTP headers.
     $headers = array();
     foreach ($this->httpRequestHeaders as $header => $values) {
       foreach ($values as $value) {
@@ -264,6 +391,13 @@ class BetterGetterHttp extends BetterGetter {
     // Get the outgoing request string so we can verify what our outgoing headers
     // were.
     $this->curlOpts[CURLINFO_HEADER_OUT] = TRUE;
+    // Prepare POST data
+    if (!empty($this->httpRawPostData)) {
+      $this->curlOpts[CURLOPT_POSTFIELDS] = $this->httpRawPostData;
+    }
+    elseif (!empty($this->httpPostFields)) {
+      $this->curlOpts[CURLOPT_POSTFIELDS] = $this->httpPostFields;
+    }
     return $this;
   }
 
@@ -274,10 +408,13 @@ class BetterGetterHttp extends BetterGetter {
    *   $this, for chaining.
    */
   public function execute() {
-    $this->prepareRequestHeaders()->prepareCurlHandle()->executeCurlHandle();
+    $this->prepareRequest()
+      ->prepareCurlHandle()
+      ->executeCurlHandle();
     $this->httpRawRequestHeaders = curl_getinfo($this->curlHandle, CURLINFO_HEADER_OUT);
     $this->httpRequestHeaders = NULL;
-    $this->closeCurlHandle()->splitResponse();
+    $this->closeCurlHandle()
+      ->splitResponse();
   }
 
   /**
