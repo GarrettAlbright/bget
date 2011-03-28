@@ -101,6 +101,22 @@ class BgetHttpTestCase extends DrupalWebTestCase {
         $this->fail($message);
       }
     }
+
+    $message = t('Setting CURLOPT_POSTFIELDS cURL option throws BetterGetterConfigException');
+    $bg = new BetterGetterHttp('http://example.com/');
+    try {
+      $bg->setCurlOpt(CURLOPT_POSTFIELDS, array('foo' => 'bar'));
+      $this->fail($message);
+    }
+    catch (Exception $e) {
+      if (is_a($e, 'BetterGetterConfigException') && $e->getCode() == BetterGetterHttp::ERR_USE_SETPOSTFIELD) {
+        $this->pass($message);
+      }
+      else {
+        $this->fail($message);
+      }
+    }
+
   }
 
   function testResponseSplitting() {
@@ -175,5 +191,52 @@ class BgetHttpTestCase extends DrupalWebTestCase {
     $bg = new BetterGetterHttp(url('<front>', array('absolute' => TRUE)));
     $bg->setCurlOpt(CURLOPT_USERAGENT, 'BetterGetter')->execute();
     $this->assertEqual($bg->getRequestHeader('User-Agent'), array('BetterGetter'), t('Parsing request headers after successful request'));
+  }
+
+  function testPostDataHandling() {
+    $data = array(
+      'foo' => 'bar',
+      'bar' => 'baz',
+      'baz' => 'qux',
+    );
+    $bg = new BetterGetterHttp(url('<front>', array('absolute' => TRUE)));
+    $bg->setPostField('foo', $data['foo']);
+    $this->assertEqual(
+      $bg->getPostField('foo'),
+      $data['foo'],
+      t('Setting and getting single POST field with setPostField() and getPostField() methods')
+    );
+    $bg->setPostFields(array('bar' => $data['bar'], 'baz' => $data['baz']));
+    $this->assertEqual(
+      $bg->getPostFields(),
+      $data,
+      t('Setting and getting multiple POST fields with setPostFields() and getPostFields()')
+    );
+    $bg->setPostField('baz', NULL);
+    $this->assertEqual(
+      $bg->getPostFields(),
+      array('foo' => $data['foo'], 'bar' => $data['bar']),
+      t('Unsetting a post field')
+    );
+    $bg->setRawPostData('foobarbaz');
+    $this->assertEqual(
+      $bg->getRawPostData(),
+      'foobarbaz',
+      t('Setting and getting raw POST data with setRawPostData() and getRawPostData()')
+    );
+    $bg->setRawPostData(NULL);
+    $bg->execute();
+    // Unfortunately there doesn't seem to be a precise way to test that POST
+    // data is being sent to the server correctly unless we can do it from the
+    // server's end. But we can at least test that cURL is doing a POST query
+    // and thinks it's sending some POST data, like this:
+    $post_check_msg = t('POST data added to query');
+    $ct = $bg->getRequestHeader('Content-Type');
+    if ($ct && strpos($ct[0], 'multipart/form-data') === 0) {
+      $this->pass($post_check_msg);
+    }
+    else {
+      $this->fail($post_check_msg);
+    }
   }
 }
