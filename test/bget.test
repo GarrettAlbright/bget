@@ -159,9 +159,6 @@ class BgetHttpTestCase extends DrupalWebTestCase {
     $bg = new BetterGetterHttp('http://example.com/');
     try {
       $bg->setRawResponse($valid_response)->splitResponse();
-      debug($bg->getResponseStatus());
-      debug($bg->getResponseHeader('Server'));
-      debug($bg->getResponseBody());
       if ($bg->getResponseStatus('status') === 'I\'m a teapot' &&
         $bg->getResponseHeader('Server') === array('albrighttpd/1.2.34') &&
         $bg->getResponseBody() === $body
