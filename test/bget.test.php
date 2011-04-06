@@ -1,6 +1,30 @@
 <?php
 
-class BgetTestCase extends DrupalWebTestCase {
+/**
+ * These tests use the SimpleTest testing library. To run them, download
+ * SimpleTest 1.0 (as of the time of this writing, the 1.1alpha version seems
+ * be broken) and place the "simpletest" directory in the "test" directory that
+ * this file is in. Then run this file, either in a browser or on the command
+ * line (php -f bget.test.php).
+ */
+
+/**
+ * Define a URL of an accessible site to use for testing. Please only use your
+ * own web sites! They don't have to give any response in particular, but they
+ * should both accept and reply with a valid HTTP response. There should be a 
+ * slash at the end of the URL.
+ */
+define('BGET_TEST_SITE_URL', 'http://localhost/');
+
+define('BGET_TEST_BASE_DIR', dirname(__FILE__));
+
+// Require Simpletest
+require BGET_TEST_BASE_DIR . '/simpletest/autorun.php';
+
+require BGET_TEST_BASE_DIR . '/../includes/BetterGetter.class.inc';
+require BGET_TEST_BASE_DIR . '/../includes/BetterGetterHttp.class.inc';
+
+class BgetTestCase extends UnitTestCase {
   function getInfo() {
     return array(
       'name' => 'Better Getter tests',
@@ -9,24 +33,21 @@ class BgetTestCase extends DrupalWebTestCase {
     );
   }
 
-  function setUp() {
-    parent::setUp('bget');
-  }
-
   /**
    * Test getting and setting the URI to access.
    */
   function testGetSetUri() {
-    $bg = new BetterGetter('http://example.com/');
-    $this->assertEqual($bg->getUri(), 'http://example.com/', t('Setting URI with constructor method and fetching with getUri() method'));
-    $this->assertEqual($bg->setUri('http://example.org/foo')->getUri(), 'http://example.org/foo', t('Setting URI with setUri() method and fetching with getUri() method'));
+    $bg = new BetterGetter(BGET_TEST_SITE_URL);
+    $this->assertEqual($bg->getUri(), BGET_TEST_SITE_URL, 'Setting URI with constructor method and fetching with getUri() method');
+    $foourl = BGET_TEST_SITE_URL . 'foo';
+    $this->assertEqual($bg->setUri($foourl)->getUri(), $foourl, 'Setting URI with setUri() method and fetching with getUri() method');
   }
 
   /**
    * Test getting and setting cURL library options in various ways.
    */
   function testGetSetCurlOpts() {
-    $bg = new BetterGetter('http://example.com/');
+    $bg = new BetterGetter(BGET_TEST_SITE_URL);
     $opts = array(
       CURLOPT_AUTOREFERER => TRUE,
       CURLOPT_USERAGENT => 'Better Getter',
@@ -34,29 +55,29 @@ class BgetTestCase extends DrupalWebTestCase {
       CURLOPT_HTTPPROXYTUNNEL => FALSE,
     );
     $bg->setCurlOpt(CURLOPT_AUTOREFERER, $opts[CURLOPT_AUTOREFERER])->setCurlOpt(CURLOPT_USERAGENT, $opts[CURLOPT_USERAGENT]);
-    $this->assertEqual($bg->getCurlOpt(CURLOPT_USERAGENT), $opts[CURLOPT_USERAGENT], t('Setting single options with setCurlOpt() method and getting with getCurlOpt() method'));
+    $this->assertEqual($bg->getCurlOpt(CURLOPT_USERAGENT), $opts[CURLOPT_USERAGENT], 'Setting single options with setCurlOpt() method and getting with getCurlOpt() method');
     $this->assertEqual(
       $bg->getCurlOpts(),
       array(
         CURLOPT_AUTOREFERER => $opts[CURLOPT_AUTOREFERER],
         CURLOPT_USERAGENT => $opts[CURLOPT_USERAGENT],
       ),
-      t('Fetching multiple options with getCurlOpts() method')
+      'Fetching multiple options with getCurlOpts() method'
     );
     unset($bg);
-    $bg = new BetterGetter('http://example.org/');
+    $bg = new BetterGetter(BGET_TEST_SITE_URL);
     $bg->setCurlOpts($opts);
-    $this->assertEqual($bg->getCurlOpts(), $opts, t('Setting multiple options with setCurlOpts() method'));
+    $this->assertEqual($bg->getCurlOpts(), $opts, 'Setting multiple options with setCurlOpts() method');
   }
 
   /**
    * Test executing a cURL handle.
    */
   function testExecution() {
-    $bg = new BetterGetter(url('<front>', array('absolute' => TRUE)));
-    $this->assertTrue($bg->execute()->getRawResponse(), t('Simple execution for site front page returns non-empty response'));
+    $bg = new BetterGetter(BGET_TEST_SITE_URL);
+    $this->assertTrue($bg->execute()->getRawResponse(), 'Simple execution for site front page returns non-empty response');
 
-    $message = t('BetterGetterCurlException thrown predictably for invalid URI');
+    $message = 'BetterGetterCurlException thrown predictably for invalid URI';
     $bg = new BetterGetter();
     try {
       $bg->execute();
@@ -73,7 +94,7 @@ class BgetTestCase extends DrupalWebTestCase {
   }
 }
 
-class BgetHttpTestCase extends DrupalWebTestCase {
+class BgetHttpTestCase extends UnitTestCase {
   function getInfo() {
     return array(
       'name' => 'Better Getter HTTP tests',
@@ -82,13 +103,9 @@ class BgetHttpTestCase extends DrupalWebTestCase {
     );
   }
 
-  function setUp() {
-    parent::setUp('bget');
-  }
-
   function testSetCurlOpt() {
-    $message = t('Setting CURLOPT_HTTPHEADER cURL option throws BetterGetterConfigException');
-    $bg = new BetterGetterHttp('http://example.com/');
+    $message = 'Setting CURLOPT_HTTPHEADER cURL option throws BetterGetterConfigException';
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
     try {
       $bg->setCurlOpt(CURLOPT_HTTPHEADER, array());
       $this->fail($message);
@@ -102,8 +119,8 @@ class BgetHttpTestCase extends DrupalWebTestCase {
       }
     }
 
-    $message = t('Setting CURLOPT_POSTFIELDS cURL option throws BetterGetterConfigException');
-    $bg = new BetterGetterHttp('http://example.com/');
+    $message = 'Setting CURLOPT_POSTFIELDS cURL option throws BetterGetterConfigException';
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
     try {
       $bg->setCurlOpt(CURLOPT_POSTFIELDS, array('foo' => 'bar'));
       $this->fail($message);
@@ -121,11 +138,11 @@ class BgetHttpTestCase extends DrupalWebTestCase {
 
   function testResponseSplitting() {
     $test_response = 'We the People of the United States, in Order to form a more perfect Union, establish Justice, insure domestic Tranquility, provide for the common defence, promote the general Welfare, and secure the Blessings of Liberty to ourselves and our Posterity, do ordain and establish this Constitution for the United States of America.';
-    $bg = new BetterGetterHttp('http://example.com/');
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
     $bg->setRawResponse($test_response);
-    $this->assertEqual($bg->getRawResponse(), $test_response, t('getRawResponse() and setRawResponse() methods working predictably'));
-    $bg = new BetterGetterHttp('http://example.com/');
-    $message = t('Throw BetterGetterHttpException when parsing empty response');
+    $this->assertEqual($bg->getRawResponse(), $test_response, 'getRawResponse() and setRawResponse() methods working predictably');
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
+    $message = 'Throw BetterGetterHttpException when parsing empty response';
     try {
       $bg->setRawResponse('')->splitResponse();
       $this->fail($message);
@@ -138,8 +155,8 @@ class BgetHttpTestCase extends DrupalWebTestCase {
         $this->fail($message);
       }
     }
-    $bg = new BetterGetterHttp('http://example.com/');
-    $message = t('Throw BetterGetterHttpException when parsing multi-line but invalid response');
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
+    $message = 'Throw BetterGetterHttpException when parsing multi-line but invalid response';
     try {
       $bg->setRawResponse("This is a totally invalid HTTP response.\r\nTotally invalid.\r\n\r\nYeah. This should fail.")->splitResponse();
       $this->fail($message);
@@ -155,7 +172,7 @@ class BgetHttpTestCase extends DrupalWebTestCase {
     // http://en.wikipedia.org/wiki/List_of_HTTP_status_codes#418
     $body = "<!doctype html>\r\n<html>\r\n<head><title>A silly test page.</title></head>\r\n\r\n<body><h1>PARTY TIME!</h1></body>\r\n</html>";
     $valid_response = "HTTP/1.1 418 I'm a teapot\r\nDate: Tue, 15 Mar 2011 21:49:17 GMT\r\nServer: albrighttpd/1.2.34\r\nConnection: close\r\n\r\n" . $body;
-    $message = t('Parsing valid response did not fail.');
+    $message = 'Parsing valid response did not fail.';
     $bg = new BetterGetterHttp('http://example.com/');
     try {
       $bg->setRawResponse($valid_response)->splitResponse();
@@ -175,19 +192,19 @@ class BgetHttpTestCase extends DrupalWebTestCase {
   }
 
   function testRequestHeaderHandling() {
-    $bg = new BetterGetterHttp('http://example.com/');
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
     $headers = array(
       'User-Agent' => 'BetterGetter',
       'X-Foo' => array('Bar', 'Baz'),
     );
     $bg->setRequestHeader('User-Agent', $headers['User-Agent']);
-    $this->assertEqual($bg->getRequestHeader('User-Agent'), array($headers['User-Agent']), t('Getting and setting a single header'));
+    $this->assertEqual($bg->getRequestHeader('User-Agent'), array($headers['User-Agent']), 'Getting and setting a single header');
     $bg->setRequestHeaders($headers);
-    $this->assertEqual($bg->getRequestHeader('X-Foo'), $headers['X-Foo'], t('Setting multiple headers with getRequestHeader()'));
-    $this->assertEqual($bg->getRequestHeaders(), array('User-Agent' => array($headers['User-Agent']), 'X-Foo' => $headers['X-Foo']), t('Getting multiple headers with getRequestHeaders'));
-    $bg = new BetterGetterHttp(url('<front>', array('absolute' => TRUE)));
+    $this->assertEqual($bg->getRequestHeader('X-Foo'), $headers['X-Foo'], 'Setting multiple headers with getRequestHeader()');
+    $this->assertEqual($bg->getRequestHeaders(), array('User-Agent' => array($headers['User-Agent']), 'X-Foo' => $headers['X-Foo']), 'Getting multiple headers with getRequestHeaders');
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
     $bg->setCurlOpt(CURLOPT_USERAGENT, 'BetterGetter')->execute();
-    $this->assertEqual($bg->getRequestHeader('User-Agent'), array('BetterGetter'), t('Parsing request headers after successful request'));
+    $this->assertEqual($bg->getRequestHeader('User-Agent'), array('BetterGetter'), 'Parsing request headers after successful request');
   }
 
   function testPostDataHandling() {
@@ -196,38 +213,38 @@ class BgetHttpTestCase extends DrupalWebTestCase {
       'bar' => 'baz',
       'baz' => 'qux',
     );
-    $bg = new BetterGetterHttp(url('<front>', array('absolute' => TRUE)));
+    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
     $bg->setPostField('foo', $data['foo']);
     $this->assertEqual(
       $bg->getPostField('foo'),
       $data['foo'],
-      t('Setting and getting single POST field with setPostField() and getPostField() methods')
+      'Setting and getting single POST field with setPostField() and getPostField() methods'
     );
     $bg->setPostFields(array('bar' => $data['bar'], 'baz' => $data['baz']));
     $this->assertEqual(
       $bg->getPostFields(),
       $data,
-      t('Setting and getting multiple POST fields with setPostFields() and getPostFields()')
+      'Setting and getting multiple POST fields with setPostFields() and getPostFields()'
     );
     $bg->setPostField('baz', NULL);
     $this->assertEqual(
       $bg->getPostFields(),
       array('foo' => $data['foo'], 'bar' => $data['bar']),
-      t('Unsetting a post field')
+      'Unsetting a post field'
     );
     $bg->setRawPostData('foobarbaz');
     $this->assertEqual(
       $bg->getRawPostData(),
       'foobarbaz',
-      t('Setting and getting raw POST data with setRawPostData() and getRawPostData()')
+      'Setting and getting raw POST data with setRawPostData() and getRawPostData()'
     );
     $bg->setRawPostData(NULL);
     $bg->execute();
     // Unfortunately there doesn't seem to be a precise way to test that POST
     // data is being sent to the server correctly unless we can do it from the
     // server's end. But we can at least test that cURL is doing a POST query
-    // and thinks it's sending some POST data, like this:
-    $post_check_msg = t('POST data added to query');
+    // and thinks it's sending some POST data, like this:
+    $post_check_msg = 'POST data added to query';
     $ct = $bg->getRequestHeader('Content-Type');
     if ($ct && strpos($ct[0], 'multipart/form-data') === 0) {
       $this->pass($post_check_msg);
