@@ -1,8 +1,0 @@
-name = Better Getter
-description = Better Getter gets it better.
-core = 7.x
-php = 5.1.3
-files[] = includes/BetterGetter.class.inc
-files[] = includes/BetterGetterHttp.class.inc
-files[] = includes/BetterGetterGopher.class.inc
-files[] = test/bget.test
