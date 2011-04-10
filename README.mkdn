@@ -1,0 +1,81 @@
+## Better Getter
+
+&copy; 2011 Garrett Albright & GoingOn, Ltd
+
+Better Getter (Bget) is an [award-winning](http://chicago2011.drupal.org/news/module-writing-contest-winners-announced) PHP library which wraps around PHP's built-in [cURL](http://curl.haxx.se/) library and makes it less painful to use. It's completely object-oriented and designed to be crazy extensible.
+
+### Simple examples
+
+Using PHP's cURL library alone to fetch a file at a URI:
+
+    <?php
+    // Initialize the cURL handle
+    $ch = curl_init('http://example.com/');
+    // Tell cURL we want the response to be returned
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    // Execute the handle and get the response
+    $response = curl_exec($ch);
+    ?>
+
+Using Better Getter:
+
+    <?php
+    // Initialize a Better Getter (Bget) instance
+    $bget = new Bget('http://example.com/');
+    // Execute it and get the response. Note the use of chaining.
+    $response = $bget->execute()->getRawResponse();
+    ?>
+
+Not yet convinced? Here's something a little more complex; getting the value of the "Date" HTTP header from a response. The standard cURL library doesn't have much in the way of helping you with getting HTTP headers from a response, so you're mostly on your own.
+
+    <?php
+    // Initialize the cURL handle
+    $ch = curl_init('http://example.com/');
+    // Tell cURL we want the response to be returned
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    // …And to include HTTP headers with the response
+    curl_setopt($ch, CURLOPT_HEADER, TRUE);
+    // Execute the handle and get the response
+    $response = curl_exec($ch);
+    // Split the headers away from the body of the response so we don't
+    // accidentally find stuff that's in the body. Also, this is a rather
+    // brittle way of going about this since cURL sometimes returns several sets
+    // of headers when doing authentication, redirection, etc. But for
+    // simplicity's sake:
+    list($headers, $body) = explode("/r/n/r/n", $response, 2);
+    // Now see if the header we're looking for is in the headers string
+    if (preg_match('/^Date: (.*)/', $headers, $matches)) {
+      $date_header = $matches[1];
+    }
+    ?>
+
+But Better Getter is designed to be extensible, and as an example of that, it comes with the `BgetHttp` class, a child of the standard `Bget` class which adds many nice functions for working with HTTP things, like headers. We can do this:
+
+    <?php
+    // Initialize a Better Getter HTTP instance
+    $bget = new BgetHttp('http://example.com/');
+    // Execute it
+    $bget->execute();
+    // Get the value of the "Date" HTTP header
+    $date_header = $bget->getResponseHeader('Date');
+    ?>
+
+Or, if you really love chaining…
+
+    <?php
+    $bget = new BgetHttp('http://example.com/');
+    $date_header = $bget->execute()->getResponseHeader('Date');
+    ?>
+
+Not using HTTP? Better Getter can be used for FTP, Gopher, or anything else that cURL itself can access. If Better Getter (or Better Getter HTTP) doesn't support what you need to do, you can set cURL options yourself using the `setCurlOpt()` method; however, the idea is that you should subclass the Bget (or BgetHttp) class so that your subclass's methods can set those options automatically itself. May Better Getter inspire you!
+
+### License
+
+Better Getter is dual-licensed under the MIT and GNU GPL v2 licenses, which should make it appropriate for any project you want to use it under. See the LICENSE.txt file for more information.
+
+
+### Contact
+
+For inquiries, contact Garrett Albright at garretta@goingon.com
+
+Like social networking? Like higher education? [GoingOn](http://goingon.com/) mixes the two like strawberries and bananas.
