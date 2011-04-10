@@ -9,9 +9,9 @@
  * provides little beneift over using the cURL functions directly, at the cost
  * of added computational and memory overhead. It's intended that this class is
  * overrided and methods added or overridden to make it more useful. The
- * BetterGetterHttp class is an example of that.
+ * BgetHttp class is an example of that.
  */
-class BetterGetter {
+class Bget {
 
   /**
    * The cURL handle as returned from curl_init().
@@ -19,7 +19,7 @@ class BetterGetter {
    * This will be NULL if the cURL handle has not yet been initialized.
    *
    * @see http://php.net/curl_init
-   * @see BetterGetter::prepareCurlHandle()
+   * @see Bget::prepareCurlHandle()
    */
   protected $curlHandle;
 
@@ -50,9 +50,9 @@ class BetterGetter {
    *   The URI to connect to may be passed to the constructor for convenience.
    *   Thus, the following examples are functionally equivalent:
    *   @code
-   *     $bg = new BetterGetter('http://example.com/');
+   *     $bg = new Bget('http://example.com/');
    *
-   *     $bg = new BetterGetter();
+   *     $bg = new Bget();
    *     $bg->setUri('http://example.com/');
    *   @endcode
    */
@@ -209,7 +209,7 @@ class BetterGetter {
   /**
    * Execute the cURL handle and set the rawResponse property.
    *
-   * @throws BetterGetterCurlException
+   * @throws BgetCurlException
    * @return
    *   $this, for chaining.
    */
@@ -219,7 +219,7 @@ class BetterGetter {
       $curl_errno = curl_errno($this->curlHandle);
       $curl_error = curl_error($this->curlHandle);
       $this->closeCurlHandle();
-      throw new BetterGetterCurlException($curl_error, $curl_errno);
+      throw new BgetCurlException($curl_error, $curl_errno);
     }
     return $this;
   }
@@ -239,8 +239,8 @@ class BetterGetter {
 /**
  * Simple exceptions specific to Better Getter errors.
  */
-class BetterGetterException extends Exception {}
+class BgetException extends Exception {}
 
-class BetterGetterCurlException extends BetterGetterException {}
+class BgetCurlException extends BgetException {}
 
-class BetterGetterConfigException extends BetterGetterException {}
+class BgetConfigException extends BgetException {}

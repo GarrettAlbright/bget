@@ -11,7 +11,7 @@
  * @todo: Authentication, compression, HTTPS/SSL certificate handling, cookie
  * handling, et al.
  */
-class BetterGetterHttp extends BetterGetter {
+class BgetHttp extends Bget {
 
   /**
    * Error constants.
@@ -70,7 +70,7 @@ class BetterGetterHttp extends BetterGetter {
    * Note that if both $httpPostFields and an $httpRawPostData are set at query
    * time, $httpRawPostData will take precedence and this data will be ignored.
    *
-   * @see BetterGetterHttp::$httpRawPostData
+   * @see BgetHttp::$httpRawPostData
    */
   protected $httpPostFields = array();
 
@@ -84,7 +84,7 @@ class BetterGetterHttp extends BetterGetter {
    * time, $httpRawPostData will take precedence and $httpPostFields will be
    * ignored.
    *
-   * @see BetterGetterHttp::$httpPostFields
+   * @see BgetHttp::$httpPostFields
    */
   protected $httpRawPostData;
 
@@ -92,7 +92,7 @@ class BetterGetterHttp extends BetterGetter {
    * An associative array of headers sent from the server as part of the server
    * response, keyed by header field name.
    *
-   * Like with BetterGetterHttp::httpRequestHeaders, each value is a flat array
+   * Like with BgetHttp::httpRequestHeaders, each value is a flat array
    * of values, since the same field with different browsers may be sent by
    * servers. Unlike with outgoing headers, this practice *is* in common use,
    * particularly when it comes to cookies.
@@ -133,14 +133,14 @@ class BetterGetterHttp extends BetterGetter {
    * Override the setCurlOpt method to stop clever people from using it to set
    * HTTP headers
    *
-   * @throws BetterGetterConfigException
+   * @throws BgetConfigException
    */
   public function setCurlOpt($option, $value) {
     if ($option === CURLOPT_HTTPHEADER) {
-      throw new BetterGetterConfigException('Please use the setRequestHeader() method to set HTTP headers.', self::ERR_USE_SETREQUESTHEADER);
+      throw new BgetConfigException('Please use the setRequestHeader() method to set HTTP headers.', self::ERR_USE_SETREQUESTHEADER);
     }
     elseif ($option === CURLOPT_POSTFIELDS) {
-      throw new BetterGetterConfigException('Please use the setPostField() or setRawPostData() methods to set POST data.', self::ERR_USE_SETPOSTFIELD);
+      throw new BgetConfigException('Please use the setPostField() or setRawPostData() methods to set POST data.', self::ERR_USE_SETPOSTFIELD);
     }
     return parent::setCurlOpt($option, $value);
   }
@@ -171,7 +171,7 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining purposes
    *
-   * @see BetterGetterHttp::httpRequestHeaders
+   * @see BgetHttp::httpRequestHeaders
    */
   public function setRequestHeader($header, $value) {
     if (is_array($value)) {
@@ -206,7 +206,7 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    *
-   * @see BetterGetterHttp::setRequestHeader()
+   * @see BgetHttp::setRequestHeader()
    */
   public function setRequestHeaders($headers) {
     foreach ($headers as $header => $value) {
@@ -265,7 +265,7 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    *
-   * @see BetterGetterHttp::setPostField
+   * @see BgetHttp::setPostField
    */
   public function setPostFields($fields) {
     foreach ($fields as $field => $value) {
@@ -321,7 +321,7 @@ class BetterGetterHttp extends BetterGetter {
    *   An array keyed by header, with the value being a one-dimensional array
    *   of values returned for that header.
    *
-   * @see BetterGetterHttp::$httpResponseHeaders
+   * @see BgetHttp::$httpResponseHeaders
    */
   public function getResponseHeaders() {
     // If we have a response, but the response headers haven't been parsed yet…
@@ -340,7 +340,7 @@ class BetterGetterHttp extends BetterGetter {
    *   A one-dimensional array of values the server sent for that header; or
    *   NULL if none.
    *
-   * @see BetterGetterHttp::httpResponseHeaders
+   * @see BgetHttp::httpResponseHeaders
    */
   public function getResponseHeader($header) {
     $headers = $this->getResponseHeaders();
@@ -361,7 +361,7 @@ class BetterGetterHttp extends BetterGetter {
    *   Either a string containing the part of the HTTP status as selected by the
    *   $part parameter, or an array containing all parts if $part is NULL.
    *
-   * @see BetterGetterHttp::httpStatus
+   * @see BgetHttp::httpStatus
    */
   public function getResponseStatus($part = NULL) {
     return empty($part) ? $this->httpStatus : $this->httpStatus[$part];
@@ -424,7 +424,7 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    *
-   * @throws BetterGetterHttpException
+   * @throws BgetHttpException
    */
   public function splitResponse() {
     // cURL may return several sets of headers when doing HTTP authentication.
@@ -434,7 +434,7 @@ class BetterGetterHttp extends BetterGetter {
     $chunks = preg_split('/\r\n\r\n/', $this->rawResponse, 0, PREG_SPLIT_OFFSET_CAPTURE);
     if (count($chunks) < 2) {
       // No way that was a valid HTTP response. Just give up.
-      throw new BetterGetterHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
+      throw new BgetHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
     }
     // Find the last chunk that looks like a chunk of HTTP headers.
     foreach ($chunks as $chunk_key => $chunk) {
@@ -448,7 +448,7 @@ class BetterGetterHttp extends BetterGetter {
       elseif ($chunk_key == 0) {
         // Wait. The first chunk didn't look like a header? Might as well bail
         // out now.
-        throw new BetterGetterHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
+        throw new BgetHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
       }
       else {
         // Okay, if we didn't find it, then consider this chunk the first piece
@@ -460,7 +460,7 @@ class BetterGetterHttp extends BetterGetter {
     }
     // Did we not find any plausible headers in the response?
     if (empty($this->httpRawResponseHeaders)) {
-      throw new BetterGetterHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
+      throw new BgetHttpException('Plausible HTTP headers not found.', self::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE);
     }
     $this->httpStatus = array(
       // $good_status_matches[0] will include the line break characters, so…
@@ -478,7 +478,7 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    *
-   * @see BetterGetterHttp::httpResponseHeaders
+   * @see BgetHttp::httpResponseHeaders
    */
   public function parseResponseHeaders() {
     $this->httpResponseHeaders = $this->parseHeaderString($this->httpRawResponseHeaders);
@@ -491,7 +491,7 @@ class BetterGetterHttp extends BetterGetter {
    * @return
    *   $this, for chaining.
    *
-   * @see BetterGetterHttp::httpRequestHeaders
+   * @see BgetHttp::httpRequestHeaders
    */
   public function parseRequestHeaders() {
     $this->httpRequestHeaders = $this->parseHeaderString($this->httpRawRequestHeaders);
@@ -525,4 +525,4 @@ class BetterGetterHttp extends BetterGetter {
   }
 }
 
-class BetterGetterHttpException extends BetterGetterException {}
+class BgetHttpException extends BgetException {}

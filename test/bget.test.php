@@ -21,8 +21,8 @@ define('BGET_TEST_BASE_DIR', dirname(__FILE__));
 // Require Simpletest
 require BGET_TEST_BASE_DIR . '/simpletest/autorun.php';
 
-require BGET_TEST_BASE_DIR . '/../includes/BetterGetter.class.inc';
-require BGET_TEST_BASE_DIR . '/../includes/BetterGetterHttp.class.inc';
+require BGET_TEST_BASE_DIR . '/../includes/Bget.class.inc';
+require BGET_TEST_BASE_DIR . '/../includes/BgetHttp.class.inc';
 
 class BgetTestCase extends UnitTestCase {
   function getInfo() {
@@ -37,7 +37,7 @@ class BgetTestCase extends UnitTestCase {
    * Test getting and setting the URI to access.
    */
   function testGetSetUri() {
-    $bg = new BetterGetter(BGET_TEST_SITE_URL);
+    $bg = new Bget(BGET_TEST_SITE_URL);
     $this->assertEqual($bg->getUri(), BGET_TEST_SITE_URL, 'Setting URI with constructor method and fetching with getUri() method');
     $foourl = BGET_TEST_SITE_URL . 'foo';
     $this->assertEqual($bg->setUri($foourl)->getUri(), $foourl, 'Setting URI with setUri() method and fetching with getUri() method');
@@ -47,7 +47,7 @@ class BgetTestCase extends UnitTestCase {
    * Test getting and setting cURL library options in various ways.
    */
   function testGetSetCurlOpts() {
-    $bg = new BetterGetter(BGET_TEST_SITE_URL);
+    $bg = new Bget(BGET_TEST_SITE_URL);
     $opts = array(
       CURLOPT_AUTOREFERER => TRUE,
       CURLOPT_USERAGENT => 'Better Getter',
@@ -65,7 +65,7 @@ class BgetTestCase extends UnitTestCase {
       'Fetching multiple options with getCurlOpts() method'
     );
     unset($bg);
-    $bg = new BetterGetter(BGET_TEST_SITE_URL);
+    $bg = new Bget(BGET_TEST_SITE_URL);
     $bg->setCurlOpts($opts);
     $this->assertEqual($bg->getCurlOpts(), $opts, 'Setting multiple options with setCurlOpts() method');
   }
@@ -74,17 +74,17 @@ class BgetTestCase extends UnitTestCase {
    * Test executing a cURL handle.
    */
   function testExecution() {
-    $bg = new BetterGetter(BGET_TEST_SITE_URL);
+    $bg = new Bget(BGET_TEST_SITE_URL);
     $this->assertTrue($bg->execute()->getRawResponse(), 'Simple execution for site front page returns non-empty response');
 
-    $message = 'BetterGetterCurlException thrown predictably for invalid URI';
-    $bg = new BetterGetter();
+    $message = 'BgetCurlException thrown predictably for invalid URI';
+    $bg = new Bget();
     try {
       $bg->execute();
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterCurlException') && $e->getCode() == 3) {
+      if (is_a($e, 'BgetCurlException') && $e->getCode() == 3) {
         $this->pass($message);
       }
       else {
@@ -104,14 +104,14 @@ class BgetHttpTestCase extends UnitTestCase {
   }
 
   function testSetCurlOpt() {
-    $message = 'Setting CURLOPT_HTTPHEADER cURL option throws BetterGetterConfigException';
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
+    $message = 'Setting CURLOPT_HTTPHEADER cURL option throws BgetConfigException';
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
     try {
       $bg->setCurlOpt(CURLOPT_HTTPHEADER, array());
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterConfigException') && $e->getCode() == BetterGetterHttp::ERR_USE_SETREQUESTHEADER) {
+      if (is_a($e, 'BgetConfigException') && $e->getCode() == BgetHttp::ERR_USE_SETREQUESTHEADER) {
         $this->pass($message);
       }
       else {
@@ -119,14 +119,14 @@ class BgetHttpTestCase extends UnitTestCase {
       }
     }
 
-    $message = 'Setting CURLOPT_POSTFIELDS cURL option throws BetterGetterConfigException';
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
+    $message = 'Setting CURLOPT_POSTFIELDS cURL option throws BgetConfigException';
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
     try {
       $bg->setCurlOpt(CURLOPT_POSTFIELDS, array('foo' => 'bar'));
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterConfigException') && $e->getCode() == BetterGetterHttp::ERR_USE_SETPOSTFIELD) {
+      if (is_a($e, 'BgetConfigException') && $e->getCode() == BgetHttp::ERR_USE_SETPOSTFIELD) {
         $this->pass($message);
       }
       else {
@@ -138,31 +138,31 @@ class BgetHttpTestCase extends UnitTestCase {
 
   function testResponseSplitting() {
     $test_response = 'We the People of the United States, in Order to form a more perfect Union, establish Justice, insure domestic Tranquility, provide for the common defence, promote the general Welfare, and secure the Blessings of Liberty to ourselves and our Posterity, do ordain and establish this Constitution for the United States of America.';
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
     $bg->setRawResponse($test_response);
     $this->assertEqual($bg->getRawResponse(), $test_response, 'getRawResponse() and setRawResponse() methods working predictably');
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
-    $message = 'Throw BetterGetterHttpException when parsing empty response';
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
+    $message = 'Throw BgetHttpException when parsing empty response';
     try {
       $bg->setRawResponse('')->splitResponse();
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterHttpException') && $e->getCode() == BetterGetterHttp::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE) {
+      if (is_a($e, 'BgetHttpException') && $e->getCode() == BgetHttp::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE) {
         $this->pass($message);
       }
       else {
         $this->fail($message);
       }
     }
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
-    $message = 'Throw BetterGetterHttpException when parsing multi-line but invalid response';
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
+    $message = 'Throw BgetHttpException when parsing multi-line but invalid response';
     try {
       $bg->setRawResponse("This is a totally invalid HTTP response.\r\nTotally invalid.\r\n\r\nYeah. This should fail.")->splitResponse();
       $this->fail($message);
     }
     catch (Exception $e) {
-      if (is_a($e, 'BetterGetterHttpException') && $e->getCode() == BetterGetterHttp::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE) {
+      if (is_a($e, 'BgetHttpException') && $e->getCode() == BgetHttp::ERR_HTTP_HEADERS_NOT_EXTRACTIBLE) {
         $this->pass($message);
       }
       else {
@@ -173,7 +173,7 @@ class BgetHttpTestCase extends UnitTestCase {
     $body = "<!doctype html>\r\n<html>\r\n<head><title>A silly test page.</title></head>\r\n\r\n<body><h1>PARTY TIME!</h1></body>\r\n</html>";
     $valid_response = "HTTP/1.1 418 I'm a teapot\r\nDate: Tue, 15 Mar 2011 21:49:17 GMT\r\nServer: albrighttpd/1.2.34\r\nConnection: close\r\n\r\n" . $body;
     $message = 'Parsing valid response did not fail.';
-    $bg = new BetterGetterHttp('http://example.com/');
+    $bg = new BgetHttp('http://example.com/');
     try {
       $bg->setRawResponse($valid_response)->splitResponse();
       if ($bg->getResponseStatus('status') === 'I\'m a teapot' &&
@@ -192,9 +192,9 @@ class BgetHttpTestCase extends UnitTestCase {
   }
 
   function testRequestHeaderHandling() {
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
     $headers = array(
-      'User-Agent' => 'BetterGetter',
+      'User-Agent' => 'Bget',
       'X-Foo' => array('Bar', 'Baz'),
     );
     $bg->setRequestHeader('User-Agent', $headers['User-Agent']);
@@ -202,9 +202,9 @@ class BgetHttpTestCase extends UnitTestCase {
     $bg->setRequestHeaders($headers);
     $this->assertEqual($bg->getRequestHeader('X-Foo'), $headers['X-Foo'], 'Setting multiple headers with getRequestHeader()');
     $this->assertEqual($bg->getRequestHeaders(), array('User-Agent' => array($headers['User-Agent']), 'X-Foo' => $headers['X-Foo']), 'Getting multiple headers with getRequestHeaders');
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
-    $bg->setCurlOpt(CURLOPT_USERAGENT, 'BetterGetter')->execute();
-    $this->assertEqual($bg->getRequestHeader('User-Agent'), array('BetterGetter'), 'Parsing request headers after successful request');
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
+    $bg->setCurlOpt(CURLOPT_USERAGENT, 'Bget')->execute();
+    $this->assertEqual($bg->getRequestHeader('User-Agent'), array('Bget'), 'Parsing request headers after successful request');
   }
 
   function testPostDataHandling() {
@@ -213,7 +213,7 @@ class BgetHttpTestCase extends UnitTestCase {
       'bar' => 'baz',
       'baz' => 'qux',
     );
-    $bg = new BetterGetterHttp(BGET_TEST_SITE_URL);
+    $bg = new BgetHttp(BGET_TEST_SITE_URL);
     $bg->setPostField('foo', $data['foo']);
     $this->assertEqual(
       $bg->getPostField('foo'),
