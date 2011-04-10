@@ -109,7 +109,7 @@ class Bget {
   /**
    * Setter for cURL library options.
    *
-   * @param $ption
+   * @param $option
    *   The cURL option constant to set a value for. If a value has already been
    *   set for this option, it will be overwritten.
    * @param $value
