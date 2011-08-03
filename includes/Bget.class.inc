@@ -31,6 +31,10 @@ class Bget {
   /**
    * An array of cURL library options.
    *
+   * Each item in this array will be keyed by the constant representing that
+   * cURL option according to the PHP cURL library, with the corresponding
+   * value. This array is ultimately passed to curl_setopt_array().
+   *
    * @see http://php.net/curl_setopt
    */
   protected $curlOpts = array();
