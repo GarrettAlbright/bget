@@ -413,7 +413,7 @@ class BgetHttp extends Bget {
       ->executeCurlHandle();
     $this->httpRawRequestHeaders = curl_getinfo($this->curlHandle, CURLINFO_HEADER_OUT);
     $this->httpRequestHeaders = NULL;
-    $this->closeCurlHandle()
+    return $this->closeCurlHandle()
       ->splitResponse();
   }
 
