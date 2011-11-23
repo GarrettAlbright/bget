@@ -204,7 +204,7 @@ class Bget {
    *   $this, for chaining.
    */
   public function prepareCurlHandle() {
-    $this->curlHandle = curl_init($this->uri);
+    $this->curlHandle = curl_init($this->getUri());
     $this->curlOpts[CURLOPT_RETURNTRANSFER] = TRUE;
     curl_setopt_array($this->curlHandle, $this->curlOpts);
     return $this;
