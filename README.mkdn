@@ -73,9 +73,8 @@ Not using HTTP? Better Getter can be used for FTP, Gopher, or anything else that
 
 Better Getter is dual-licensed under the MIT and GNU GPL v2 licenses, which should make it appropriate for any project you want to use it under. See the LICENSE.txt file for more information.
 
-
 ### Contact
 
-For inquiries, contact Garrett Albright at garretta@goingon.com
+For inquiries, contact Garrett Albright at albright@abweb.us
 
 Like social networking? Like higher education? [GoingOn](http://goingon.com/) mixes the two like strawberries and bananas.
